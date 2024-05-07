@@ -1,0 +1,158 @@
+
+.usuarios-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Faz o container ter altura total da tela */
+}
+
+.titulo {
+  text-align: center;
+  margin: 20px 0;
+  font-size: 2rem; /* Correção: use font-size ao invés de fontSize */
+  font-weight: 600; /* Correção: use font-weight ao invés de fontWeight */
+}
+
+
+  
+.usuarios-content {
+  flex: 1; /* Faz o conteúdo expandir para ocupar o espaço disponível */
+  overflow: auto; /* Adiciona rolagem se o conteúdo for maior que a tela */
+}
+  
+  .MuiTableCell-root {
+    border-bottom: 1px solid #a26e35; /* Cor primária para as linhas da tabela */
+  }
+
+  /* Estilize a TableContainer para ocupar o espaço disponível */
+.TableContainer {
+  max-height: 100%; /* Garante que a TableContainer não ultrapasse a altura disponível */
+}
+  
+  .MuiTableHead-root {
+    background-color: #f2d261; /* Cor secundária para o cabeçalho da tabela */
+  }
+  
+  .MuiIconButton-root {
+    margin: 5px;
+  }
+  
+  .MuiTypography-h4 {
+    color: #a26e35; /* Cor primária para o título */
+    margin-bottom: 20px;
+    text-align: left;
+  }
+  
+  /* Estilos adicionais para responsividade */
+  @media (max-width: 768px) {
+    .usuarios-container {
+      padding-left: 80px; /* Ajuste para a largura do menu em dispositivos menores */
+    }
+    
+    .usuarios-content {
+      width: calc(100% - 80px); /* Subtrai a nova largura do menu da largura total */
+      max-width: calc(95% - 80px); /* Define uma largura máxima de 95% da tela menos a largura do menu */
+    }
+  }
+  
+  @media (max-width: 600px) {
+    .usuarios-container {
+      padding-left: 0; /* Remove o padding se o menu for oculto ou se transformar em um menu hambúrguer */
+    }
+    
+    .usuarios-content {
+      width: 100%; /* O conteúdo deve expandir para a largura total */
+      max-width: 95%; /* Define uma largura máxima de 95% da tela */
+      padding: 10px;
+    }
+  }
+  
+  .pesquisa-ativa {
+    display: block;
+    max-height: 80vh;
+    overflow: auto;
+  }
+  
+  .pesquisa-inativa {
+    display: none;
+  }
+
+ 
+  
+  .pesquisa-ativa {
+    max-height: 100vh; /* ou outra altura conforme necessário */
+    overflow: auto;
+  }
+  
+  .pesquisa-inativa {
+    display: none;
+  }
+  
+  
+  @media (max-width: 768px) {
+    .titulo-e-pesquisa {
+      flex-direction: column;
+    }
+  }
+
+  /* Estilos para o Dialog */
+.MuiDialog-container {
+  /* Garante que o modal seja centralizado em todos os dispositivos */
+  padding-top: 5vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-height: 98vh;
+}
+
+.MuiDialog-paperWidthSm {
+  /* Define um tamanho máximo para telas pequenas */
+  max-width: 100%;
+}
+
+.MuiDialogContent-root {
+  /* Define padding menor para telas pequenas */
+  padding: 10px;
+}
+
+
+.DialogTitle {
+  padding-top: 3vh;
+  text-align: center;
+  font-size: 5vh;
+  color: #a26e35;
+}
+
+
+
+/* Media queries para ajustar o modal em diferentes tamanhos de tela */
+@media (max-width: 768px) {
+  .MuiDialog-paper {
+    margin: 10px; /* Menos espaço ao redor do modal */
+    max-width: calc(100% - 20px); /* Garante uma pequena margem ao redor do modal */
+    max-height: calc(100% - 20px); /* Limita a altura do modal */
+  }
+  
+  .MuiDialogContent-root {
+    padding: 8px; /* Padding menor para telas pequenas */
+  }
+}
+
+.MuiTypography-h4 {
+  text-align: center; /* Centraliza o texto */
+  flex-grow: 1; /* Faz com que o título ocupe o espaço disponível */
+}
+
+.novoUsuarioBtn {
+  padding: 10px 20px; /* Ajusta o preenchimento interno */
+  background-color: #f2d261; /* Cor secundária para destaque */
+  color: #a26e35; /* Cor primária para o texto */
+  /* Adicione mais estilos conforme necessário */
+}
+
+@media (max-width: 480px) {
+  .MuiDialog-paper {
+    margin: 5px; /* Margem ainda menor para telas muito pequenas */
+    max-width: calc(100% - 10px); /* Ajusta a largura do modal */
+    max-height: calc(80% - 8px); /* Ajusta a altura do modal */
+  }
+}

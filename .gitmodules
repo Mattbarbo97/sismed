@@ -1,0 +1,4 @@
+[submodule "sismed"]
+    path = sismed
+    url = https://github.com/Mattbarbo97/sismed.git
+    branch = master

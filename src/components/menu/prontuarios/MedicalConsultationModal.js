@@ -40,7 +40,7 @@ const validationSchema = Yup.object().shape({
 
 
 const MedicalConsultationModal = ({ open, onClose, paciente, doutor, handleSave }) => {
-  const { user, setUser } = useUser();
+  const { user } = useUser();
   const [receitaCounter, setReceitaCounter] = useState(0);
   const [exameCounter, setExameCounter] = useState(0);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -87,11 +87,7 @@ const MedicalConsultationModal = ({ open, onClose, paciente, doutor, handleSave 
   };
 
 
-  const handleDeleteReceita = (index) => {
-    const newReceitas = [...formik.values.receitas];
-    newReceitas.splice(index, 1);
-    formik.setFieldValue("receitas", newReceitas);
-  };
+
 
   const addReceita = () => {
     const newReceita = { value: "", key: `receita-${receitaCounter}` };

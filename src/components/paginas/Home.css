@@ -1,0 +1,49 @@
+/* Home.css */
+.home-container {
+  display: flex;
+  flex-direction: column; /* Centraliza verticalmente também */
+  align-items: center; /* Centraliza horizontalmente */
+  justify-content: center; /* Centraliza verticalmente */
+  height: 100vh;
+}
+
+.home-content {
+  margin-left: auto; /* Largura do menu */
+  margin-right: auto;
+  padding: 20px;
+  width: calc(100% - 250px); /* Subtrai a largura do menu da largura total */
+  box-sizing: border-box; /* Inclui o padding na largura total */
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Centraliza o conteúdo horizontalmente dentro do .home-content */
+}
+
+.logo {
+  max-width: 60vh; /* Ajuste conforme o tamanho desejado para o logo */
+  height: 60vh;
+  display: flex;
+  justify-content: center; /* Centralizar horizontalmente */
+  align-items: center; /* Centralizar verticalmente */
+  margin-bottom: 0px; /* Espaço abaixo do logo */
+  opacity: 0.4; /* Corrigido: use ponto para decimal */
+}
+
+.welcome-section {
+  text-align: center;
+  width: 100%; /* Faz a seção de boas-vindas ocupar toda a largura disponível */
+}
+
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #a26e35;
+  margin-bottom: 20px;
+  opacity: 0.2;
+}
+
+.user-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}

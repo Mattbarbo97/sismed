@@ -1,3 +1,4 @@
+
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
@@ -59,10 +60,14 @@ const PacientesCadastrados = () => {
     const [loading, setLoading] = useState(true);
     const [modalCadastroAberto, setModalCadastroAberto] = useState(false);
     const [modalDetalhesAberto, setModalDetalhesAberto] = useState(false);
-    const [usuarioSelecionado, setUsuarioSelecionado] = useState(null);
-    const [modoEdicao, setModoEdicao] = useState(false);
+    
+    const [ setUsuarioSelecionado] = useState(null);
+    
+    const [ setModoEdicao] = useState(false);
     const [termoPesquisa, setTermoPesquisa] = useState("");
     const styles = useStyles();
+    const [pacienteSelecionado, setPacienteSelecionado] = useState(null);
+
 
     useEffect(() => {
         const firestore = getFirestore();
@@ -116,9 +121,8 @@ const PacientesCadastrados = () => {
     };
 
     const handleView = (paciente) => {
-        setUsuarioSelecionado(paciente);
-        setModoEdicao(false);
-        handleAbrirModalDetalhes();
+        setPacienteSelecionado(paciente);
+        setModalDetalhesAberto(true);
     };
 
     const handleDelete = async (paciente) => {
@@ -304,30 +308,30 @@ const PacientesCadastrados = () => {
                     </Dialog>
 
                     {/* Modal para visualizar ou editar paciente */}
-                    <Dialog
-                        open={modalDetalhesAberto}
-                        onClose={handleFecharModalDetalhes}
-                        fullWidth
-                        maxWidth="md"
-                    >
-                        <DialogTitle>
-                            {modoEdicao
-                                ? "Editar Paciente"
-                                : "Detalhes do Paciente"}
-                        </DialogTitle>
-                        <DialogContent>
-                            <CadastroPaciente
-                                paciente={usuarioSelecionado}
-                                modoEdicao={modoEdicao}
-                                onSalvar={handleAdicionarPaciente}
-                            />
-                        </DialogContent>
-                        <DialogActions>
-                            <Button onClick={handleFecharModalDetalhes}>
-                                Fechar
-                            </Button>
-                        </DialogActions>
-                    </Dialog>
+
+
+
+                    {/* Modal para visualizar paciente */}
+                      <Dialog
+                          open={modalDetalhesAberto}
+                          onClose={handleFecharModalDetalhes}
+                          fullWidth
+                          maxWidth="md"
+                      >
+                          <DialogTitle>Detalhes do Paciente</DialogTitle>
+                          <DialogContent>
+                              <Typography variant="h6">Nome: {pacienteSelecionado?.nome}</Typography>
+                              <Typography variant="body1">E-mail: {pacienteSelecionado?.email}</Typography>
+                              <Typography variant="body1">CPF: {pacienteSelecionado?.cpf}</Typography>
+                              <Typography variant="body1">Gênero: {pacienteSelecionado?.genero}</Typography>
+                              <Typography variant="body1">Telefone: {pacienteSelecionado?.telefone}</Typography>
+                              {/* Adicione outros campos conforme necessário */}
+                          </DialogContent>
+                          <DialogActions>
+                              <Button onClick={handleFecharModalDetalhes}>Fechar</Button>
+                          </DialogActions>
+                      </Dialog>
+                      
                 </div>
             </div>
         </ThemeProvider>
@@ -335,5 +339,3 @@ const PacientesCadastrados = () => {
 };
 
 export default PacientesCadastrados;
-
-//adicionar ´numero de prontuario antigo

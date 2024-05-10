@@ -1,8 +1,8 @@
 import { Button, CssBaseline, ThemeProvider } from "@mui/material";
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "../../context/UserContext";
-import logoini from "../../img/logoini.png"; // Ajuste o caminho conforme necessário
+
+
 import temaUNNA from "../../temas"; // Ajuste o caminho conforme necessário
 import MenuPrincipal from "../menu/MenuPrincipal";
 import "../paginas/Home.css"; // Ajuste o caminho conforme necessário
@@ -12,7 +12,7 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import GroupIcon from "@mui/icons-material/Group";
 
 const Home = () => {
-  const { logOut } = useUser();
+  
   const navigate = useNavigate();
 
   const handleRedirect = (route) => {

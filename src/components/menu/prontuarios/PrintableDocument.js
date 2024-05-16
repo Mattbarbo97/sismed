@@ -1,7 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, forwardRef } from 'react';
 import { Modal, Box, Button, Typography } from '@mui/material';
 import { useReactToPrint } from 'react-to-print';
-import { useLocation, useNavigate } from 'react-router-dom';
 import './PrintableDocumentStyles.css';
 import logoClinica from '../../../img/logoprint.jpeg';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -13,28 +12,25 @@ function getBrazilTime() {
   return formatInTimeZone(now, timeZone, 'dd/MM/yyyy');
 }
 
-const PrintableDocument = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { open, paciente, conteudo, titulo, medico, includeDate } = location.state || {};
+const PrintableDocument = forwardRef(({ open, onClose, paciente, conteudo, titulo, medico, includeDate, onDocumentPrinted, zIndex = 1300 }, ref) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const componentRef = useRef();
 
   const handlePrint = useReactToPrint({
-    content: () => componentRef.current,
+    content: () => ref.current,
     documentTitle: 'Documento Médico',
     onAfterPrint: () => {
       if (currentIndex < conteudo.length - 1) {
         setCurrentIndex(currentIndex + 1);
       } else {
-        navigate(-1); // Voltar para a página anterior
         setCurrentIndex(0);
+        onDocumentPrinted(titulo);
+        onClose(); // Fecha o modal após a impressão
       }
     },
   });
 
   useEffect(() => {
-    if (open && conteudo && conteudo.length > 0) {
+    if (open && conteudo && conteudo.length > 0 && ref.current) {
       handlePrint();
     }
     // eslint-disable-next-line
@@ -45,9 +41,9 @@ const PrintableDocument = () => {
   }
 
   return (
-    <Modal open={open} onClose={() => navigate(-1)} className="modal-background">
+    <Modal open={open} onClose={onClose} className="modal-background" sx={{ zIndex }}>
       <Box className="modal-wrapper">
-        <Box className="page" ref={componentRef}>
+        <Box className="page" ref={ref}>
           <Box className="header">
             <img className="logo" src={logoClinica} alt="Logo da Clínica" />
             <Box className="title">
@@ -56,9 +52,14 @@ const PrintableDocument = () => {
           </Box>
 
           <Box className="content">
+            {/* Linha sutil acima do título */}
+            <Box className="subtle-line"></Box>
+            
+            {/* Centraliza o título com a classe .main-title */}
             <Box sx={{ textAlign: 'center', marginBottom: 2 }}>
-              <Typography variant="h4" className="main-title">{titulo}</Typography>
+              <Typography className="main-title">{titulo}</Typography>
             </Box>
+
             <Box className="section-content">
               <Box className="section-title">Paciente:</Box>
               <Box>{paciente?.nome}</Box>
@@ -66,7 +67,7 @@ const PrintableDocument = () => {
 
             <Box className="prescription-header">
               <Typography className="prescription-title">
-                {titulo === 'Pedido de Exame' ? 'Solicitação' : 'Prescrição'}
+                {titulo === 'Solicitação de exame' ? 'Pedido de Exame' : 'Prescrição'}
               </Typography>
               {includeDate && (
                 <Typography className="print-date">Data de Impressão: {getBrazilTime()}</Typography>
@@ -99,17 +100,18 @@ const PrintableDocument = () => {
             </Box>
           </Box>
         </Box>
+
         <Box className="button-container-print">
           <Button className="custom-button print-button" onClick={handlePrint}>
             IMPRIMIR DOCUMENTO
           </Button>
-          <Button className="custom-button cancel-button" onClick={() => navigate(-1)}>
+          <Button className="custom-button cancel-button" onClick={onClose}>
             CANCELAR IMPRESSÃO
           </Button>
         </Box>
       </Box>
     </Modal>
   );
-};
+});
 
 export default PrintableDocument;

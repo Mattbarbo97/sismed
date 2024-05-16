@@ -1,40 +1,24 @@
-//CadastroUsuario.js
 import {
   Alert,
   Box,
   Button,
   Container,
   FormControl,
-  FormControlLabel,
   InputLabel,
   MenuItem,
   Select,
   TextField,
-  Checkbox,
 } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import axios from "axios";
 import { createUserWithEmailAndPassword, getAuth } from "firebase/auth";
-import { doc, getFirestore, setDoc, collection, getDocs } from "firebase/firestore";
-import { useNavigate } from 'react-router-dom';
+import { doc, getFirestore, setDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import temaUNNA from "../../temas"; // Ajuste o caminho conforme necessário
 import MenuPrincipal from "../menu/MenuPrincipal";
 import useStyles from "./CadastroUsuarioStyles";
 
-const CadastroUsuario = ({ atualizarListaColaboradores, fecharModal }) => {
-  // eslint-disable-next-line
-  const navigate = useNavigate();
-  const styles = useStyles();
-
-  const auth = getAuth();
-  const firestore = getFirestore();
-
-  const [funcoes, setFuncoes] = useState([]);
-  const [especialidades, setEspecialidades] = useState([]);
-  const [temEspecialidade, setTemEspecialidade] = useState(false);
-  const [especialidade, setEspecialidade] = useState("");
-
+const CadastroUsuario = () => {
   // Função para formatar CPF
   const formatarCPF = (valor) => {
     const apenasDigitos = valor.replace(/\D/g, "").slice(0, 11);
@@ -66,9 +50,39 @@ const CadastroUsuario = ({ atualizarListaColaboradores, fecharModal }) => {
   const [telefone, setTelefone] = useState("");
   const [idFuncao, setIdFuncao] = useState("");
   const [senha, setSenha] = useState("");
-  const [identificacaoProfissional, setIdentificacaoProfissional] = useState("");
+  const [identificacaoProfissional, setIdentificacaoProfissional] =
+    useState("");
   const [mensagemAlerta, setMensagemAlerta] = useState({ tipo: "", texto: "" });
   const [mostrarAlerta, setMostrarAlerta] = useState(false);
+
+  useEffect(() => {
+    let timer;
+    if (mostrarAlerta) {
+      timer = setTimeout(() => {
+        setMostrarAlerta(false);
+      }, 5000); // Mensagem desaparece após 5 segundos
+    }
+    return () => clearTimeout(timer); // Limpa o timer se o componente for desmontado
+  }, [mostrarAlerta]);
+
+  const exibirMensagemAlerta = (tipo, texto) => {
+    setMensagemAlerta({ tipo, texto });
+    setMostrarAlerta(true);
+  };
+
+  const funcoes = {
+    1: "Médico",
+    2: "Nutricionista",
+    3: "Enfermeiro",
+    4: "Dentista",
+    5: "Secretária",
+    99: "Admin",
+  };
+
+  const styles = useStyles();
+
+  const auth = getAuth();
+  const firestore = getFirestore();
 
   const buscarEnderecoPorCep = async (cep) => {
     if (cep.length === 8) {
@@ -91,39 +105,6 @@ const CadastroUsuario = ({ atualizarListaColaboradores, fecharModal }) => {
     }
   };
 
-  const exibirMensagemAlerta = (tipo, texto) => {
-    setMensagemAlerta({ tipo, texto });
-    setMostrarAlerta(true);
-  };
-
-  useEffect(() => {
-    const carregarFuncoes = async () => {
-      try {
-        const collectionRef = collection(firestore, 'dbo.usuario');
-
-        const snapshot = await getDocs(collectionRef);
-        const funcoesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setFuncoes(funcoesData);
-      } catch (error) {
-        console.error("Erro ao carregar funções:", error);
-      }
-    };
-
-    const carregarEspecialidades = async () => {
-      try {
-        const collectionRef = collection(firestore, 'dbo.especialidades');
-        const snapshot = await getDocs(collectionRef);
-        const especialidadesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setEspecialidades(especialidadesData);
-      } catch (error) {
-        console.error("Erro ao carregar especialidades:", error);
-      }
-    };
-
-    carregarFuncoes();
-    carregarEspecialidades();
-  }, [firestore]);
-
   const cadastrarUsuario = async () => {
     if (
       !nome ||
@@ -144,7 +125,7 @@ const CadastroUsuario = ({ atualizarListaColaboradores, fecharModal }) => {
 
     try {
       const usuario = await createUserWithEmailAndPassword(auth, email, senha);
-      console.log("Colaborador criado:", usuario);
+      console.log("Usuário criado:", usuario);
 
       const docRef = doc(firestore, "usuarios_cadastrados", usuario.user.uid);
 
@@ -153,37 +134,24 @@ const CadastroUsuario = ({ atualizarListaColaboradores, fecharModal }) => {
         cpf,
         rg,
         endereco,
-        bairro,
-        cidade,
-        estado,
         cep,
         numeroResidencia,
         email,
         telefone,
         idFuncao,
         identificacaoProfissional,
-        especialidade: temEspecialidade ? especialidade : null,
         uid: usuario.user.uid,
       };
 
       await setDoc(docRef, createdUser);
 
-      exibirMensagemAlerta("success", "Colaborador cadastrado com sucesso!");
-
-      // Atualiza a lista de colaboradores e fecha o modal
-      if (atualizarListaColaboradores) {
-        atualizarListaColaboradores();
-      }
-
-      if (fecharModal) {
-        fecharModal();
-      }
+      exibirMensagemAlerta("success", "Usuário cadastrado com sucesso!");
     } catch (error) {
       console.error("Erro ao salvar no Firestore:", error);
       if (error.code === "auth/email-already-in-use") {
         exibirMensagemAlerta(
           "error",
-          "Erro ao cadastrar Colaborador: e-mail já em uso."
+          "Erro ao cadastrar usuário: e-mail já em uso."
         );
       } else {
         exibirMensagemAlerta("error", "Sem comunicação com o banco de dados.");
@@ -246,7 +214,7 @@ const CadastroUsuario = ({ atualizarListaColaboradores, fecharModal }) => {
             onChange={(e) => setEndereco(e.target.value)}
             margin="normal"
             variant="outlined"
-            disabled={false}
+            disabled
           />
           <TextField
             fullWidth
@@ -255,7 +223,9 @@ const CadastroUsuario = ({ atualizarListaColaboradores, fecharModal }) => {
             onChange={(e) => setBairro(e.target.value)}
             margin="normal"
             variant="outlined"
+            disabled={bairro !== ""}
           />
+
           <TextField
             fullWidth
             label="Cidade"
@@ -263,8 +233,9 @@ const CadastroUsuario = ({ atualizarListaColaboradores, fecharModal }) => {
             onChange={(e) => setCidade(e.target.value)}
             margin="normal"
             variant="outlined"
-            disabled
+            disabled={cidade !== ""}
           />
+
           <TextField
             fullWidth
             label="Estado"
@@ -272,7 +243,7 @@ const CadastroUsuario = ({ atualizarListaColaboradores, fecharModal }) => {
             onChange={(e) => setEstado(e.target.value)}
             margin="normal"
             variant="outlined"
-            disabled
+            disabled={estado !== ""}
           />
           <TextField
             fullWidth
@@ -314,46 +285,22 @@ const CadastroUsuario = ({ atualizarListaColaboradores, fecharModal }) => {
               onChange={(e) => setIdFuncao(e.target.value)}
               label="Função"
             >
-              {funcoes.map((funcao) => (
-                <MenuItem key={funcao.id} value={funcao.id}>
-                  {funcao.nome}
+              {Object.entries(funcoes).map(([key, value]) => (
+                <MenuItem key={key} value={key}>
+                  {value}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
-          <TextField
-            fullWidth
-            label="Identificação Profissional"
-            placeholder="Insira seu CRM, CRN, CRO"
-            value={identificacaoProfissional}
-            onChange={(e) => setIdentificacaoProfissional(e.target.value)}
-            margin="normal"
-            variant="outlined"
-          />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={temEspecialidade}
-                onChange={() => setTemEspecialidade(!temEspecialidade)}
-              />
-            }
-            label="Possui alguma especialidade médica?"
-          />
-          {temEspecialidade && (
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Especialidade</InputLabel>
-              <Select
-                value={especialidade}
-                onChange={(e) => setEspecialidade(e.target.value)}
-                label="Especialidade"
-              >
-                {especialidades.map((especialidade) => (
-                  <MenuItem key={especialidade.id} value={especialidade.id}>
-                    {especialidade.nome}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+          {["1", "2", "3", "4"].includes(idFuncao) && (
+            <TextField
+              fullWidth
+              label="Identificação Profissional"
+              value={identificacaoProfissional}
+              onChange={(e) => setIdentificacaoProfissional(e.target.value)}
+              margin="normal"
+              variant="outlined"
+            />
           )}
           <Button
             fullWidth

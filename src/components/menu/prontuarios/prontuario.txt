@@ -17,4 +17,4 @@ Pode-se considerar também a implementação de uma funcionalidade de "salvament
 Navegação e Acessibilidade:
 
 Certifique-se de que os botões e controles sejam facilmente acessíveis e claramente etiquetados para uma navegação intuitiva.
-A interface deve ser limpa e sem muita informação visual que possa distrair ou confundir o Colaborador.
+A interface deve ser limpa e sem muita informação visual que possa distrair ou confundir o usuário.

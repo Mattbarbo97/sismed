@@ -20,71 +20,19 @@ import {
 import {
     collection,
     doc,
-     // eslint-disable-next-line
-    
     getDocs,
     getFirestore,
-    runTransaction,
     setDoc,
 } from "firebase/firestore";
 import React, { useCallback, useEffect, useState } from "react";
 import { useUser } from "../../../context/UserContext";
 import { firestore } from "../../../firebase";
-import { format } from "date-fns";
+import formatDate from "../../../utils/formatDate";
+import takeFirst80Char from "../../../utils/takeFirst80Char";
 import MenuPrincipal from "../MenuPrincipal";
 import MedicalConsultationModal from "./MedicalConsultationModal";
 import "./ProntuarioStyles.css";
 import ViewProntuarioModal from "./viewProntuarioModal";
-
-// Definindo as funções faltantes
-const formatDate = (date) => {
-    try {
-        return format(date, 'dd/MM/yyyy');
-    } catch (error) {
-        console.error("Invalid date format:", date);
-        return "";
-    }
-};
-
-const formatDateTime = (date) => {
-    try {
-        return format(date, 'dd/MM/yyyy HH:mm');
-    } catch (error) {
-        console.error("Invalid date format:", date);
-        return "";
-    }
-};
-
-const takeFirst80Char = (text) => {
-    return text.length > 80 ? text.substring(0, 80) + "..." : text;
-};
-
-const getNextProntuarioId = async () => {
-    const db = getFirestore();
-    const counterDocRef = doc(db, "counters", "prontuarioId");
-
-    try {
-        const newId = await runTransaction(db, async (transaction) => {
-            const counterDoc = await transaction.get(counterDocRef);
-            if (!counterDoc.exists()) {
-                // Iniciar o contador se ele não existir
-                transaction.set(counterDocRef, { currentId: 1 });
-                return 1;
-            }
-
-            const currentId = counterDoc.data().currentId;
-            const nextId = currentId + 1;
-            transaction.update(counterDocRef, { currentId: nextId });
-
-            return nextId;
-        });
-
-        return newId.toString().padStart(6, '0');
-    } catch (e) {
-        console.error("Transaction failed: ", e);
-        throw e;
-    }
-};
 
 const ProntuarioEletronico = () => {
     const [pacienteSelecionado, setPacienteSelecionado] = useState({
@@ -104,17 +52,19 @@ const ProntuarioEletronico = () => {
     const [historico, setHistorico] = useState([]);
     const [pacientes, setPacientes] = useState([]);
     const [modalConsultaAberto, setModalConsultaAberto] = useState(false);
-    const [prontuarioSelecionado, setProntuarioSelecionado] = useState(null);
+    const [prontuarioSelecionado, setProntuarioSelecionado] = useState([]);
     const [viewProntuarioModal, setViewProntuarioModal] = useState(false);
 
     const { user } = useUser();
 
     useEffect(() => {
         const firestore = getFirestore();
-        const pacientesCollection = collection(firestore, "pacientes_cadastrados");
+        const pacientesCollection = collection(
+            firestore,
+            "pacientes_cadastrados"
+        );
 
         const listarPacientes = async () => {
-            setLoading(true);
             try {
                 const snapshot = await getDocs(pacientesCollection);
                 const pacientesList = snapshot.docs.map((doc) => ({
@@ -132,27 +82,28 @@ const ProntuarioEletronico = () => {
         listarPacientes();
     }, []);
 
+    // Função para salvar anotações do prontuário
     const salvarProntuario = async (data) => {
-        if (!pacienteSelecionado.id) {
+        console.log(data);
+        if ( !pacienteSelecionado.id) {
+            // Adicione uma lógica para lidar com a ausência de texto
             return;
         }
         setLoading(true);
         try {
-            const novoId = await getNextProntuarioId();
             const dados = {
-                id: novoId,
                 texto: data.anotacoes,
                 exames: data.exames,
-                Receituário: data.Receituário,
+                receitas: data.receitas,
                 data: new Date(),
                 paciente: pacienteSelecionado,
                 user_id: pacienteSelecionado.id,
                 medico: user,
             };
             const historicoCollection = collection(firestore, "prontuarios");
-            await setDoc(doc(historicoCollection, novoId), dados);
+            await setDoc(doc(historicoCollection), dados);
             setModalConsultaAberto(false);
-            await buscarAnotacoes();
+            buscarAnotacoes();
         } catch (error) {
             console.error("Erro ao salvar anotações:", error);
         }
@@ -164,6 +115,7 @@ const ProntuarioEletronico = () => {
             return;
         }
         setLoading(true);
+        // Buscar anotações do paciente selecionado com order by data
         try {
             const historicoCollection = collection(firestore, "prontuarios");
             const historicoSnapshot = await getDocs(historicoCollection);
@@ -177,6 +129,7 @@ const ProntuarioEletronico = () => {
                 )
                 .sort((a, b) => b.data.toDate() - a.data.toDate());
             setHistorico(historicoList);
+            console.log(historicoList);
         } catch (error) {
             console.log(error);
         }
@@ -189,10 +142,7 @@ const ProntuarioEletronico = () => {
 
     const defaultProps = {
         options: pacientes,
-        getOptionLabel: (option) => {
-            const dataNascimento = new Date(option.dataNascimento);
-            return `${option.nome} (${formatDate(dataNascimento)})`;
-        },
+        getOptionLabel: (option) => option.nome + " " + option.cpf,
     };
 
     const defaultFilterOptions = createFilterOptions();
@@ -302,7 +252,7 @@ const ProntuarioEletronico = () => {
                                 Data de Nascimento:
                             </Typography>
                             <Typography variant="h6">
-                                {formatDate(new Date(pacienteSelecionado.dataNascimento))}
+                                {pacienteSelecionado.dataNascimento}
                             </Typography>
                         </Box>
                     </Grid>
@@ -364,7 +314,7 @@ const ProntuarioEletronico = () => {
                 <Table aria-label="Histórico do Prontuário">
                     <TableHead>
                         <TableRow>
-                            <TableCell>Data e Hora</TableCell>
+                            <TableCell>Data</TableCell>
                             <TableCell>Médico</TableCell>
                             <TableCell>Descrição</TableCell>
                             <TableCell>Ações</TableCell>
@@ -374,10 +324,12 @@ const ProntuarioEletronico = () => {
                         {historico.map((registro) => (
                             <TableRow key={registro.id}>
                                 <TableCell>
-                                    {formatDateTime(registro.data.toDate())}
+                                {formatDate(registro.data.toDate())}
                                 </TableCell>
-                                <TableCell>{registro.medico.nome}</TableCell>
-                                <TableCell>{takeFirst80Char(registro.texto)}</TableCell>
+                                <TableCell>{registro.medico.name}</TableCell>
+                                <TableCell>
+                                    {takeFirst80Char(registro.texto)}
+                                </TableCell>
                                 <TableCell>
                                     <IconButton
                                         onClick={() => {
@@ -402,13 +354,11 @@ const ProntuarioEletronico = () => {
                 handleSave={salvarProntuario}
             />
 
-            {prontuarioSelecionado && (
-                <ViewProntuarioModal
-                    prontuario={prontuarioSelecionado}
-                    open={viewProntuarioModal}
-                    onClose={() => setViewProntuarioModal(false)}
-                />
-            )}
+            <ViewProntuarioModal
+                prontuario={prontuarioSelecionado}
+                open={viewProntuarioModal}
+                onClose={() => setViewProntuarioModal(false)}
+            />
 
             {loading && (
                 <Box

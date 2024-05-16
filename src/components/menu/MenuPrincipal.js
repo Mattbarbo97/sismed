@@ -20,8 +20,6 @@ import Typography from "@mui/material/Typography";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import logoini from "../../img/logoini.png";
-// eslint-disable-next-line
-import { ListSubheader } from '@mui/material';
 
 import CloseIcon from "@mui/icons-material/Close";
 import { useUser } from "../../context/UserContext";
@@ -30,14 +28,13 @@ const MenuPrincipal = () => {
     const navigate = useNavigate();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showUserCrudMenu, setShowUserCrudMenu] = useState(false);
-    // eslint-disable-next-line
     const [showPatientCrudMenu, setShowPatientCrudMenu] = useState(false);
     //   const [user, setUser] = useState(null);
 
     const { user, setUser } = useUser();
 
     // useEffect(() => {
-    //     // Recupera o Colaborador do localStorage e atualiza o estado
+    //     // Recupera o usuário do localStorage e atualiza o estado
     //     const storedUser = localStorage.getItem("user");
     //     if (storedUser) {
     //         setUser(JSON.parse(storedUser));
@@ -95,8 +92,10 @@ const MenuPrincipal = () => {
                         sx={{ flexGrow: 1 }}
                     >
                         {user
-                            ? `${user.nome} bem vindo(a)`
-                            : "Colaborador não logado"}
+                            ? `${user.name} ${
+                                  user.online ? "(Online)" : "bem vindo(a)"
+                              }`
+                            : "Usuário não logado"}
                     </Typography>
 
                     {user && (
@@ -153,7 +152,7 @@ const MenuPrincipal = () => {
                                 <GroupIcon />
                             </ListItemIcon>
 
-                            <ListItemText primary="Cadastros" />
+                            <ListItemText primary="Usuários e Cadastrados" />
                             {showUserCrudMenu ? <ExpandLess /> : <ExpandMore />}
                         </ListItemButton>
                         <Collapse
@@ -168,43 +167,53 @@ const MenuPrincipal = () => {
                                         handleNavigate("/cadastro-usuario")
                                     }
                                 >
-                                    {/* <ListItemText primary="Cadastrar" /> */}
+                                    <ListItemText primary="Cadastrar" />
                                 </ListItemButton>
-
+                                
                                 <ListItemButton
                                     sx={{ pl: 4 }}
                                     onClick={() =>
                                         handleNavigate("/usuarios-cadastrados")
                                     }
                                 >
-                                    <ListItemText primary="Colaboradores" />
+                                    <ListItemText primary="Visualizar Usuários" />
                                 </ListItemButton>
 
                                 <ListItemButton
                                     sx={{ pl: 4 }}
                                     onClick={() =>
-                                        handleNavigate("/gerenciar-funcoes")
+                                        handleNavigate("/cadastro-funcao")
                                     }
                                 >
-                                    <ListItemText primary="Função" />
+                                    <ListItemText primary="Cadastrar nova Função" />
                                 </ListItemButton>
-
-                                <ListItemButton
-                                    sx={{ pl: 4 }}
-                                    onClick={() =>
-                                        handleNavigate("/pacientes-cadastrados")
-                                    }
-                                >
-                                    <ListItemText primary="Pacientes" />
-                                </ListItemButton>
-                            
                             </List>
                         </Collapse>
 
-                        
-                      
-                            {/*<List component="div" disablePadding>
-                                 <ListItemButton
+                        <ListItemButton
+                            onClick={() =>
+                                setShowPatientCrudMenu(!showPatientCrudMenu)
+                            }
+                        >
+                            <ListItemIcon>
+                                <GroupIcon />
+                            </ListItemIcon>
+
+                            <ListItemText primary="Cadastro Pacientes" />
+                            {showPatientCrudMenu ? (
+                                <ExpandLess />
+                            ) : (
+                                <ExpandMore />
+                            )}
+                        </ListItemButton>
+
+                        <Collapse
+                            in={showPatientCrudMenu}
+                            timeout="auto"
+                            unmountOnExit
+                        >
+                            <List component="div" disablePadding>
+                                {/* <ListItemButton
                                     sx={{ pl: 4 }}
                                     onClick={() =>
                                         handleNavigate("/cadastro-paciente")
@@ -213,20 +222,25 @@ const MenuPrincipal = () => {
                                     <ListItemText primary="Cadastrar Novo Paciente" />
                                 </ListItemButton> */}
 
-                                
-                        
-                          <List>
-                              <ListItemButton onClick={() => handleNavigate("/criar-prontuario")}>
-                                  <ListItemIcon>
-                                      <AssignmentIcon />
-                                  </ListItemIcon>
-                                  <ListItemText primary="Prontuários" />
-                              </ListItemButton>
-                              
-                              {/* Outros itens do submenu */}
-                          </List>
-
-                          
+                                <ListItemButton
+                                    sx={{ pl: 4 }}
+                                    onClick={() =>
+                                        handleNavigate("/pacientes-cadastrados")
+                                    }
+                                >
+                                    <ListItemText primary="Visualizar Pacientes" />
+                                </ListItemButton>
+                            </List>
+                        </Collapse>
+                        <ListItemButton
+                            sx={{ pl: 4 }}
+                            onClick={() => handleNavigate("/criar-prontuario")}
+                        >
+                            <ListItemIcon>
+                                <AssignmentIcon />
+                            </ListItemIcon>
+                            <ListItemText primary="Prontuários" />
+                        </ListItemButton>
                         {/* Botão de sair */}
                         {user && (
                             <ListItemButton onClick={logOut}>

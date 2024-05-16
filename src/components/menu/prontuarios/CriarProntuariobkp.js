@@ -41,7 +41,7 @@ const ProntuarioEletronico = () => {
   // Função para buscar pacientes
   const handleSearch = async () => {
     if (!termoPesquisa || !dataNascimento) {
-      // Talvez exibir algum feedback para o Colaborador
+      // Talvez exibir algum feedback para o usuário
       return;
     }
     setLoading(true);

@@ -1,38 +1,74 @@
-.container {
-  max-width: 800px; /* Limite de largura para o formulário */
-  margin: auto; /* Centraliza o formulário na página */
-  padding: 20px; /* Espaçamento interno */
-  background-color: #fff; /* Cor de fundo */
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Sombra suave ao redor do formulário */
-  border-radius: 8px; /* Bordas arredondadas */
-}
-
-.header {
-  color: #a26e35; /* Cor primária do tema */
-  margin-bottom: 20px; /* Espaçamento abaixo do cabeçalho */
-}
-
-.input-label {
-  display: block; /* Faz o label ocupar a linha inteira */
-  color: #333; /* Cor do texto */
-  margin-bottom: 5px; /* Espaçamento abaixo do label */
-}
-
-.input-field, .select-field {
-  width: 100%; /* Largura completa */
-  padding: 8px; /* Padding interno para aumentar a área clicável */
-  margin-bottom: 15px; /* Espaçamento abaixo do input */
-  border: 1px solid #ccc; /* Borda */
-  border-radius: 4px; /* Bordas arredondadas */
-}
-
-.button {
-  background-color: #a26e35; /* Cor primária do tema */
-  color: #fff; /* Texto branco */
-  border: none; /* Sem borda */
-  padding: 10px 20px; /* Padding interno */
-  border-radius: 4px; /* Bordas arredondadas */
-  cursor: pointer; /* Cursor do tipo pointer */
-  display: block; /* Ocupar a linha inteira */
-  width: 100%; /* Largura total */
-}
+/* Agendamentos.css */
+.agendamento-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centraliza o conteúdo na direção vertical */
+    padding: 20px;
+    background-color: #fff;
+    color: #333;
+  }
+  
+  .agendamento-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%; /* Ocupa a largura total */
+    margin-bottom: 20px;
+  }
+  
+  .agendamento-header h1 {
+    color: #a26e35; /* Tonalidade de marrom do seu design */
+    font-size: 24px;
+  }
+  
+  .search-bar {
+    display: flex;
+    justify-content: flex-end; /* Alinha as barras de pesquisa à direita */
+    gap: 10px;
+    width: 100%; /* Ocupa a largura total */
+    margin-bottom: 20px;
+  }
+  
+  .react-calendar {
+    max-width: 60vh;
+    height: auto;
+    border: 1px solid #e0e0e0;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  
+  .react-calendar__tile--active {
+    background-color: #a26e35 !important; /* Marrom do seu design */
+    color: white !important;
+  }
+  
+  .react-calendar__tile--active:enabled:hover,
+  .react-calendar__tile--active:enabled:focus {
+    background-color: #a26e35 !important; /* Marrom do seu design */
+  }
+  
+  /* Estilos para botões e inputs */
+  .button-save, .text-field {
+    background-color: #a26e35; /* Marrom do seu design */
+    color: white;
+  }
+  
+  .button-save:hover {
+    background-color: darken(#a26e35, 10%); /* Escurecer o botão no hover */
+  }
+  
+  .text-field {
+    border: 1px solid #e0e0e0;
+    margin-right: 10px;
+  }
+  
+  /* Estilos para Autocomplete do Material-UI */
+  .MuiAutocomplete-root {
+    width: 300px; /* Define a largura fixa para o Autocomplete */
+  }
+  
+  .MuiInput-underline:before {
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  /* Você pode adicionar mais estilização conforme necessário */
+  

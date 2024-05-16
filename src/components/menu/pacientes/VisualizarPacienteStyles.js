@@ -1,4 +1,3 @@
-//VisualizarPacienteStyles.js
 import { makeStyles } from "@mui/styles";
 
 const useStyles = makeStyles((theme) => ({
@@ -14,18 +13,6 @@ const useStyles = makeStyles((theme) => ({
             margin: theme.spacing(1),
         },
     },
-    slider: {
-        position: "absolute",
-        cursor: "pointer",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "#ccc",
-        transition: "background-color 0.4s",
-        borderRadius: 34, // Adiciona bordas arredondadas para o slider
-      },
-      
     submitButton: {
         backgroundColor: "#DAA520",
         "&:hover": {

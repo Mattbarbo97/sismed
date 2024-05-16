@@ -31,7 +31,6 @@ import {
     getDocs,
     getFirestore,
     updateDoc,
-    getDoc
 } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import temaUNNA from "../../temas";
@@ -65,7 +64,7 @@ const ModalDetalhesUsuario = ({
     const [editandoUsuario, setEditandoUsuario] = useState(usuario);
 
     useEffect(() => {
-        setEditandoUsuario(usuario); // Atualiza quando o Colaborador muda
+        setEditandoUsuario(usuario); // Atualiza quando o usuário muda
     }, [usuario]);
 
     const handleChange = (e) => {
@@ -83,7 +82,7 @@ const ModalDetalhesUsuario = ({
     return (
         <Dialog open={aberto} onClose={handleClose}>
             <DialogTitle>
-                {modoEdicao ? "Editar Colaborador" : "Detalhes do Colaborador"}
+                {modoEdicao ? "Editar Usuário" : "Detalhes do Usuário"}
             </DialogTitle>
             <DialogContent>
                 {modoEdicao ? (
@@ -96,17 +95,15 @@ const ModalDetalhesUsuario = ({
                             name="nome"
                             value={editandoUsuario?.nome || ""}
                             onChange={handleChange}
-                            InputProps={{ readOnly: true }}
                         />
                         <TextField
                             margin="dense"
-                            label="RG"
-                            type="text"
+                            label="Email"
+                            type="email"
                             fullWidth
-                            name="rg"
-                            value={editandoUsuario?.rg || ""}
+                            name="email"
+                            value={editandoUsuario?.email || ""}
                             onChange={handleChange}
-                            InputProps={{ readOnly: true }}
                         />
                         <TextField
                             margin="dense"
@@ -116,17 +113,6 @@ const ModalDetalhesUsuario = ({
                             name="cpf"
                             value={editandoUsuario?.cpf || ""}
                             onChange={handleChange}
-                            InputProps={{ readOnly: true }}
-                        />
-                        <TextField
-                            margin="dense"
-                            label="Identificação do Profissional"
-                            type="text"
-                            fullWidth
-                            name="identificacaoProfissional"
-                            value={editandoUsuario?.identificacaoProfissional || ""}
-                            onChange={handleChange}
-                            InputProps={{ readOnly: true }}
                         />
                         <TextField
                             margin="dense"
@@ -137,79 +123,13 @@ const ModalDetalhesUsuario = ({
                             value={editandoUsuario?.funcao || ""}
                             onChange={handleChange}
                         />
-                        <TextField
-                            margin="dense"
-                            label="CEP"
-                            type="text"
-                            fullWidth
-                            name="cep"
-                            value={editandoUsuario?.cep || ""}
-                            onChange={handleChange}
-                        />
-                        <TextField
-                            margin="dense"
-                            label="Endereço"
-                            type="text"
-                            fullWidth
-                            name="endereco"
-                            value={editandoUsuario?.endereco || ""}
-                            onChange={handleChange}
-                        />
-                        <TextField
-                            margin="dense"
-                            label="Bairro"
-                            type="text"
-                            fullWidth
-                            name="bairro"
-                            value={editandoUsuario?.bairro || ""}
-                            onChange={handleChange}
-                        />
-                        <TextField
-                            margin="dense"
-                            label="Cidade"
-                            type="text"
-                            fullWidth
-                            name="cidade"
-                            value={editandoUsuario?.cidade || ""}
-                            onChange={handleChange}
-                            InputProps={{ readOnly: true }}
-                        />
-                        <TextField
-                            margin="dense"
-                            label="Estado"
-                            type="text"
-                            fullWidth
-                            name="estado"
-                            value={editandoUsuario?.estado || ""}
-                            onChange={handleChange}
-                            InputProps={{ readOnly: true }}
-                        />
-                        <TextField
-                            margin="dense"
-                            label="Telefone"
-                            type="text"
-                            fullWidth
-                            name="telefone"
-                            value={editandoUsuario?.telefone || ""}
-                            onChange={handleChange}
-                        />
                     </>
                 ) : (
                     <>
                         <Typography>Nome: {usuario?.nome}</Typography>
-                        <Typography>RG: {usuario?.rg}</Typography>
+                        <Typography>Email: {usuario?.email}</Typography>
                         <Typography>CPF: {usuario?.cpf}</Typography>
-                        <Typography>Identificação do Profissional: {usuario?.identificacaoProfissional}</Typography>
                         <Typography>Função: {usuario?.funcao}</Typography>
-                        <Typography>CEP: {usuario?.cep}</Typography>
-                        <Typography>Endereço: {usuario?.endereco}</Typography>
-                        <Typography>Bairro: {usuario?.bairro}</Typography>
-                        <Typography>Cidade: {usuario?.cidade}</Typography>
-                        <Typography>Estado: {usuario?.estado}</Typography>
-                        <Typography>Telefone: {usuario?.telefone}</Typography>
-                        {usuario?.especialidade && (
-                            <Typography>Especialidade: {usuario.especialidade}</Typography>
-                        )}
                     </>
                 )}
             </DialogContent>
@@ -222,7 +142,6 @@ const ModalDetalhesUsuario = ({
     );
 };
 
-
 const UsuariosCadastrados = () => {
     const [usuarios, setUsuarios] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -231,69 +150,22 @@ const UsuariosCadastrados = () => {
     const [modoEdicao, setModoEdicao] = useState(false);
     const [termoPesquisa, setTermoPesquisa] = useState("");
 
-    const fetchUsuarios = async () => {
-        setLoading(true);
-        const firestore = getFirestore();
-        const usuariosCollectionRef = collection(firestore, "usuarios_cadastrados");
-        try {
-            const snapshot = await getDocs(usuariosCollectionRef);
-            const usuariosList = [];
-            for (const docSnap of snapshot.docs) {
-                const userData = docSnap.data();
-                console.log("Dados do Colaborador:", userData); // Adicionar este log para verificar os dados do Colaborador
-                // Inicializa a propriedade "funcao" como uma string vazia caso não exista
-                userData.funcao = userData.funcao || "";
-                // Busca o nome da função usando o idFuncao na coleção dbo.usuario
-                const docRefFuncao = doc(firestore, "dbo.usuario", userData.idFuncao);
-                console.log("Referência do documento da função:", docRefFuncao); // Adicionar este log para verificar a referência do documento
-                const docSnapFuncao = await getDoc(docRefFuncao);
-                console.log("Snapshot da função:", docSnapFuncao); // Adicionar este log para verificar o snapshot da função
-                if (docSnapFuncao.exists()) {
-                    const funcaoData = docSnapFuncao.data();
-                    userData.funcao = funcaoData.nome || "";
-                }
-
-                // Busca o nome da especialidade usando o UID na coleção dbo.especialidades
-                if (userData.especialidade) {
-                    const docRefEspecialidade = doc(firestore, "dbo.especialidades", userData.especialidade);
-                    const docSnapEspecialidade = await getDoc(docRefEspecialidade);
-                    if (docSnapEspecialidade.exists()) {
-                        const especialidadeData = docSnapEspecialidade.data();
-                        userData.especialidade = especialidadeData.nome || userData.especialidade;
-                    }
-                }
-
-                usuariosList.push({
-                    id: docSnap.id,
-                    ...userData,
-                });
-            }
-            setUsuarios(usuariosList);
-        } catch (error) {
-            console.error("Erro ao buscar Colaboradores:", error);
-        }
-        setLoading(false);
-    };
-
     // No componente pai
-    // eslint-disable-next-line
     const handleSalvarUsuario = async (dadosUsuario) => {
         try {
-            // Aqui vai a lógica para salvar os dados do Colaborador
+            // Aqui vai a lógica para salvar os dados do usuário
             // Por exemplo, chamar uma API ou adicionar ao Firestore
             console.log(dadosUsuario); // Apenas para depuração
-            // Atualiza a lista de colaboradores
-            fetchUsuarios();
             // Fechar o modal após o salvamento ser bem-sucedido
             handleFecharModalCadastro();
         } catch (error) {
-            console.error("Erro ao salvar Colaborador:", error);
+            console.error("Erro ao salvar usuário:", error);
             // Aqui você pode definir como quer tratar os erros
-            // Por exemplo, mostrar uma mensagem para o Colaborador
+            // Por exemplo, mostrar uma mensagem para o usuário
         }
     };
 
-    //modal de cadastro
+    //modal de cadstro
     const [modalCadastroAberto, setModalCadastroAberto] = useState(false);
     // Função para abrir o modal de CadastroUsuario
     const handleAbrirModalCadastro = () => {
@@ -310,7 +182,7 @@ const UsuariosCadastrados = () => {
 
     const handleDelete = async (usuario) => {
         const confirmar = window.confirm(
-            "Tem certeza que deseja excluir este Colaborador?"
+            "Tem certeza que deseja excluir este usuário?"
         );
         if (confirmar) {
             try {
@@ -321,10 +193,10 @@ const UsuariosCadastrados = () => {
                 );
                 await deleteDoc(docRef);
                 setUsuarios(usuarios.filter((user) => user.id !== usuario.id));
-                alert("Colaborador excluído com sucesso!");
+                alert("Usuário excluído com sucesso!");
             } catch (error) {
-                console.error("Erro ao excluir Colaborador:", error);
-                alert("Erro ao excluir Colaborador.");
+                console.error("Erro ao excluir usuário:", error);
+                alert("Erro ao excluir usuário.");
             }
         }
     };
@@ -343,7 +215,7 @@ const UsuariosCadastrados = () => {
 
     const handleSaveEdicao = async (usuarioEditado) => {
         if (!usuarioEditado.funcao) {
-            console.error("Erro: Função do Colaborador não definida.");
+            console.error("Erro: Função do usuário não definida.");
             return;
         }
         try {
@@ -364,10 +236,10 @@ const UsuariosCadastrados = () => {
                 )
             );
             setModalAberto(false);
-            alert("Colaborador atualizado com sucesso!");
+            alert("Usuário atualizado com sucesso!");
         } catch (error) {
-            console.error("Erro ao atualizar Colaborador:", error);
-            alert("Erro ao atualizar Colaborador.");
+            console.error("Erro ao atualizar usuário:", error);
+            alert("Erro ao atualizar usuário.");
         }
     };
 
@@ -377,9 +249,28 @@ const UsuariosCadastrados = () => {
     };
 
     useEffect(() => {
+        const fetchUsuarios = async () => {
+            setLoading(true);
+            const firestore = getFirestore();
+            const usuariosCollectionRef = collection(
+                firestore,
+                "usuarios_cadastrados"
+            );
+            try {
+                const snapshot = await getDocs(usuariosCollectionRef);
+                const usuariosList = snapshot.docs.map((doc) => ({
+                    id: doc.id,
+                    ...doc.data(),
+                }));
+                setUsuarios(usuariosList);
+            } catch (error) {
+                console.error("Erro ao buscar usuários:", error);
+            }
+            setLoading(false);
+        };
+
         fetchUsuarios();
     }, []);
-
     if (loading) {
         return (
             <Box
@@ -412,7 +303,7 @@ const UsuariosCadastrados = () => {
                         {/* Caixa para a pesquisa e o botão, alinhados à direita */}
                         <Box display="flex" alignItems="center">
                             <TextField
-                                label="Pesquisar Colaborador"
+                                label="Pesquisar Usuário"
                                 variant="outlined"
                                 size="small"
                                 value={termoPesquisa}
@@ -438,7 +329,7 @@ const UsuariosCadastrados = () => {
                                 startIcon={<AddIcon />}
                                 onClick={handleAbrirModalCadastro}
                             >
-                                Novo Colaborador
+                                Novo Usuário
                             </Button>
                         </Box>
                     </Box>
@@ -496,12 +387,9 @@ const UsuariosCadastrados = () => {
                                                 {usuario.email}
                                             </TableCell>
                                             <TableCell>{usuario.cpf}</TableCell>
-
                                             <TableCell>
-                                                {usuario.funcao || "Carregando..."} {/* Mostra "Carregando..." enquanto a função está sendo carregada */}
+                                                {usuario.funcao}
                                             </TableCell>
-
-
                                             <TableCell>
                                                 <AcoesUsuario
                                                     usuario={usuario}
@@ -524,15 +412,12 @@ const UsuariosCadastrados = () => {
                         maxWidth="md" // ou outro tamanho que você preferir
                     >
                         <DialogTitle className="DialogTitle">
-                            Cadastrar Novo Colaborador
+                            Cadastrar Novo Usuário
                         </DialogTitle>
 
                         <DialogContent>
                             {/* Passando a função handleSalvarUsuario como prop para CadastroUsuario */}
-                            <CadastroUsuario
-                                atualizarListaColaboradores={fetchUsuarios}
-                                fecharModal={handleFecharModalCadastro}
-                            />
+                            <CadastroUsuario onSalvar={handleSalvarUsuario} />
                         </DialogContent>
 
                         <DialogActions>

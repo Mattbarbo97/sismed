@@ -38,11 +38,11 @@ const LoginForm = () => {
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-            console.log("Colaborador já existe no banco de dados.", docSnap.data());
+            console.log("Usuário já existe no banco de dados.", docSnap.data());
             return docSnap.data();
         } else {
-            console.log("Colaborador não encontrado no banco de dados.");
-            return null;
+            console.log("Usuário não encontrado no banco de dados.");
+            return null; // Indica que o usuário não foi encontrado
         }
     };
 
@@ -65,19 +65,19 @@ const LoginForm = () => {
                 senha
             );
 
-            const userFromDb = await getUserFromDb(userCredential.user.uid);
-            if (!userFromDb) {
-                setAlert({ message: "Colaborador não cadastrado.", type: "error" });
-                return;
+            const user = await getUserFromDb(userCredential.user.uid);
+            if (!user) {
+                // Usuário não encontrado no banco de dados
+                setAlert({ message: "Usuário não cadastrado.", type: "error" });
+                return; // Interrompe a execução se não encontrar o usuário
             }
 
-            console.log("Colaborador logado com sucesso:", userFromDb);
+            console.log("Usuário logado com sucesso:", user);
 
             const userData = {
-                nome: userFromDb.nome || "Colaborador sem nome",
-                email: userFromDb.email,
-                identificacaoProfissional: userFromDb.identificacaoProfissional,
-                uid: userCredential.user.uid,
+                name: user.nome || "Usuário sem nome",
+                email: user.email,
+                uid: user.uid,
             };
 
             setUser(userData);
@@ -89,7 +89,7 @@ const LoginForm = () => {
             });
             navigate("/home");
         } catch (error) {
-            console.error("Erro no login do Colaborador:", error);
+            console.error("Erro no login do usuário:", error);
             setAlert({ message: error.message, type: "error" });
         }
     };
@@ -155,7 +155,7 @@ const styles = {
         borderRadius: "4px",
         textAlign: "center",
         zIndex: 1000,
-        backgroundColor: "red",
+        backgroundColor: "red", // Este valor é sobrescrito com base no tipo de alerta
     },
     container: {
         display: "flex",

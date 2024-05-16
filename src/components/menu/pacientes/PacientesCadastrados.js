@@ -23,21 +23,19 @@ import {
     TextField,
     ThemeProvider,
     Typography,
-    FormControlLabel,
-    Checkbox,
 } from "@mui/material";
 import {
+    addDoc,
     collection,
+    doc,
     getDocs,
     getFirestore,
-    doc,
     updateDoc,
-    addDoc,
 } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import temaUNNA from "../../../temas";
+import temaUNNA from "../../../temas"; // Substitua pelo caminho correto para o seu tema
 import MenuPrincipal from "../MenuPrincipal";
-import CadastroPaciente from "./CadastroPaciente";
+import CadastroPaciente from "./CadastroPaciente"; // Este é um componente fictício, substitua pelo nome correto
 import useStyles from "./VisualizarPacienteStyles";
 
 const AcoesPaciente = ({ paciente, onEdit, onDelete, onView }) => {
@@ -61,14 +59,17 @@ const PacientesCadastrados = () => {
     const [loading, setLoading] = useState(true);
     const [modalCadastroAberto, setModalCadastroAberto] = useState(false);
     const [modalDetalhesAberto, setModalDetalhesAberto] = useState(false);
-    const [modalEditarAberto, setModalEditarAberto] = useState(false);
-    const [pacienteSelecionado, setPacienteSelecionado] = useState(null);
+    const [usuarioSelecionado, setUsuarioSelecionado] = useState(null);
+    const [modoEdicao, setModoEdicao] = useState(false);
     const [termoPesquisa, setTermoPesquisa] = useState("");
     const styles = useStyles();
 
     useEffect(() => {
         const firestore = getFirestore();
-        const pacientesCollection = collection(firestore, "pacientes_cadastrados");
+        const pacientesCollection = collection(
+            firestore,
+            "pacientes_cadastrados"
+        );
 
         const listarPacientes = async () => {
             try {
@@ -104,37 +105,43 @@ const PacientesCadastrados = () => {
         setModalDetalhesAberto(false);
     };
 
-    const handleAbrirModalEditar = () => {
-        setModalEditarAberto(true);
-    };
-
-    const handleFecharModalEditar = () => {
-        setModalEditarAberto(false);
-    };
-
     const handleSearchChange = (event) => {
         setTermoPesquisa(event.target.value);
     };
 
     const handleEdit = (paciente) => {
-        setPacienteSelecionado(paciente);
-        handleAbrirModalEditar();
+        setUsuarioSelecionado(paciente);
+        setModoEdicao(true);
+        handleAbrirModalDetalhes();
     };
 
     const handleView = (paciente) => {
-        setPacienteSelecionado(paciente);
+        setUsuarioSelecionado(paciente);
+        setModoEdicao(false);
         handleAbrirModalDetalhes();
     };
 
     const handleDelete = async (paciente) => {
-        const confirmar = window.confirm("Tem certeza que deseja inativar este paciente?");
+        const confirmar = window.confirm(
+            "Tem certeza que deseja inativar este paciente?"
+        );
         if (confirmar) {
             try {
-                const pacienteRef = doc(getFirestore(), "pacientes_cadastrados", paciente.id);
-                await updateDoc(pacienteRef, { ativo: false });
-                setPacientes(pacientes.map((item) =>
-                    item.id === paciente.id ? { ...item, ativo: false } : item
-                ));
+                const pacienteRef = doc(
+                    getFirestore(),
+                    "pacientes_cadastrados",
+                    paciente.id
+                );
+                await updateDoc(pacienteRef, {
+                    ativo: false,
+                });
+                setPacientes(
+                    pacientes.map((item) =>
+                        item.id === paciente.id
+                            ? { ...item, ativo: false }
+                            : item
+                    )
+                );
                 alert("Paciente inativado com sucesso!");
             } catch (error) {
                 console.error("Erro ao inativar paciente:", error);
@@ -143,29 +150,16 @@ const PacientesCadastrados = () => {
         }
     };
 
-    const handleAtualizarPaciente = async (dadosPaciente) => {
-        try {
-            const pacienteRef = doc(getFirestore(), "pacientes_cadastrados", dadosPaciente.id);
-            await updateDoc(pacienteRef, dadosPaciente);
-            setPacientes(pacientes.map((paciente) =>
-                paciente.id === dadosPaciente.id ? dadosPaciente : paciente
-            ));
-            handleFecharModalEditar();
-            alert("Paciente atualizado com sucesso!");
-        } catch (error) {
-            console.error("Erro ao atualizar paciente:", error);
-            alert("Erro ao atualizar paciente.");
-        }
-    };
-
     const handleAdicionarPaciente = async (dadosPaciente) => {
         try {
             const firestore = getFirestore();
-            const docRef = await addDoc(collection(firestore, "pacientes_cadastrados"), dadosPaciente);
-            const novoPaciente = { id: docRef.id, ...dadosPaciente };
-            setPacientes((prevPacientes) => [...prevPacientes, novoPaciente]);
-            handleFecharModalCadastro();
+            const docRef = await addDoc(
+                collection(firestore, "pacientes_cadastrados"),
+                dadosPaciente
+            );
+            setPacientes([...pacientes, { id: docRef.id, ...dadosPaciente }]);
             alert("Paciente adicionado com sucesso!");
+            handleFecharModalCadastro();
         } catch (error) {
             console.error("Erro ao adicionar paciente:", error);
             alert("Erro ao adicionar paciente.");
@@ -176,7 +170,12 @@ const PacientesCadastrados = () => {
 
     if (loading) {
         return (
-            <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
+            <Box
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+                height="100vh"
+            >
                 <CircularProgress />
             </Box>
         );
@@ -187,7 +186,12 @@ const PacientesCadastrados = () => {
             <div className={styles.usuariosContainer}>
                 <MenuPrincipal />
                 <div className={styles.usuariosContent}>
-                    <Box display="flex" justifyContent="space-between" alignItems="left" marginBottom="2rem">
+                    <Box
+                        display="flex"
+                        justifyContent="space-between"
+                        alignItems="left"
+                        marginBottom="2rem"
+                    >
                         <Typography variant="h4" gutterBottom component="div">
                             Pacientes Cadastrados
                         </Typography>
@@ -201,7 +205,11 @@ const PacientesCadastrados = () => {
                                 InputProps={{
                                     endAdornment: (
                                         <InputAdornment position="end">
-                                            <IconButton onClick={() => console.log("Pesquisar")}>
+                                            <IconButton
+                                                onClick={() =>
+                                                    console.log("Pesquisar")
+                                                }
+                                            >
                                                 <SearchIcon />
                                             </IconButton>
                                         </InputAdornment>
@@ -224,27 +232,44 @@ const PacientesCadastrados = () => {
                             <TableHead>
                                 <TableRow>
                                     {tableHead.map((headItem, index) => (
-                                        <TableCell key={index}>{headItem}</TableCell>
+                                        <TableCell key={index}>
+                                            {headItem}
+                                        </TableCell>
                                     ))}
                                 </TableRow>
                             </TableHead>
                             <TableBody>
                                 {pacientes
                                     .filter((paciente) => {
-                                        const searchLower = termoPesquisa.toLowerCase();
+                                        const searchLower =
+                                            termoPesquisa.toLowerCase();
                                         return (
-                                            paciente.nome.toLowerCase().includes(searchLower) ||
-                                            paciente.email.toLowerCase().includes(searchLower) ||
+                                            paciente.nome
+                                                .toLowerCase()
+                                                .includes(searchLower) ||
+                                            paciente.email
+                                                .toLowerCase()
+                                                .includes(searchLower) ||
                                             paciente.cpf.includes(searchLower)
                                         );
                                     })
                                     .map((paciente, index) => (
                                         <TableRow key={index}>
-                                            <TableCell>{paciente.nome}</TableCell>
-                                            <TableCell>{paciente.email}</TableCell>
-                                            <TableCell>{paciente.cpf}</TableCell>
-                                            <TableCell>{paciente.genero}</TableCell>
-                                            <TableCell>{paciente.telefone}</TableCell>
+                                            <TableCell>
+                                                {paciente.nome}
+                                            </TableCell>
+                                            <TableCell>
+                                                {paciente.email}
+                                            </TableCell>
+                                            <TableCell>
+                                                {paciente.cpf}
+                                            </TableCell>
+                                            <TableCell>
+                                                {paciente.genero}
+                                            </TableCell>
+                                            <TableCell>
+                                                {paciente.telefone}
+                                            </TableCell>
                                             <TableCell>
                                                 <AcoesPaciente
                                                     paciente={paciente}
@@ -258,301 +283,48 @@ const PacientesCadastrados = () => {
                             </TableBody>
                         </Table>
                     </TableContainer>
-
                     {/* Modal para adicionar novo paciente */}
-                    <Dialog open={modalCadastroAberto} onClose={handleFecharModalCadastro} fullWidth maxWidth="md">
+                    <Dialog
+                        open={modalCadastroAberto}
+                        onClose={handleFecharModalCadastro}
+                        fullWidth
+                        maxWidth="md"
+                    >
                         <DialogTitle>Cadastrar Novo Paciente</DialogTitle>
                         <DialogContent>
-                            <CadastroPaciente onSalvar={handleAdicionarPaciente} />
+                            <CadastroPaciente
+                                onSalvar={handleAdicionarPaciente}
+                            />
                         </DialogContent>
                         <DialogActions>
-                            <Button onClick={handleFecharModalCadastro}>Cancelar</Button>
+                            <Button onClick={handleFecharModalCadastro}>
+                                Cancelar
+                            </Button>
                         </DialogActions>
                     </Dialog>
 
-                    {/* Modal para visualizar paciente */}
-                    <Dialog open={modalDetalhesAberto} onClose={handleFecharModalDetalhes} fullWidth maxWidth="md">
-                        <DialogTitle>Detalhes do Paciente</DialogTitle>
+                    {/* Modal para visualizar ou editar paciente */}
+                    <Dialog
+                        open={modalDetalhesAberto}
+                        onClose={handleFecharModalDetalhes}
+                        fullWidth
+                        maxWidth="md"
+                    >
+                        <DialogTitle>
+                            {modoEdicao
+                                ? "Editar Paciente"
+                                : "Detalhes do Paciente"}
+                        </DialogTitle>
                         <DialogContent>
-                            {pacienteSelecionado && (
-                                <>
-                                    <Typography>Nome: {pacienteSelecionado.nome}</Typography>
-                                    <Typography>E-mail: {pacienteSelecionado.email}</Typography>
-                                    <Typography>CPF: {pacienteSelecionado.cpf}</Typography>
-                                    <Typography>RG: {pacienteSelecionado.rg}</Typography>
-                                    <Typography>Sexo Biológico: {pacienteSelecionado.sexoBiologico}</Typography>
-                                    <Typography>Gênero: {pacienteSelecionado.genero}</Typography>
-                                    <Typography>Data de Nascimento: {pacienteSelecionado.dataNascimento}</Typography>
-                                    <Typography>CEP: {pacienteSelecionado.cep}</Typography>
-                                    <Typography>Endereço: {pacienteSelecionado.endereco}</Typography>
-                                    <Typography>Bairro: {pacienteSelecionado.bairro}</Typography>
-                                    <Typography>Cidade: {pacienteSelecionado.cidade}</Typography>
-                                    <Typography>Estado: {pacienteSelecionado.estado}</Typography>
-                                    <Typography>Número da residência: {pacienteSelecionado.numeroResidencia}</Typography>
-                                    <Typography>Telefone: {pacienteSelecionado.telefone}</Typography>
-                                    <Typography><strong>Contato de Emergência:</strong> {pacienteSelecionado.contatoEmergencia}</Typography>
-                                    {pacienteSelecionado.prontuarioAntigo && (
-                                        <>
-                                            <Typography>Número do Prontuário Antigo: {pacienteSelecionado.prontuarioAntigo}</Typography>
-                                            <Typography>Localização do Prontuário Antigo: {pacienteSelecionado.localizacaoProntuarioAntigo}</Typography>
-                                        </>
-                                    )}
-                                </>
-                            )}
+                            <CadastroPaciente
+                                paciente={usuarioSelecionado}
+                                modoEdicao={modoEdicao}
+                                onSalvar={handleAdicionarPaciente}
+                            />
                         </DialogContent>
                         <DialogActions>
-                            <Button onClick={handleFecharModalDetalhes}>Fechar</Button>
-                        </DialogActions>
-                    </Dialog>
-
-                    {/* Modal para editar paciente */}
-                    <Dialog open={modalEditarAberto} onClose={handleFecharModalEditar} fullWidth maxWidth="md">
-                        <DialogTitle>Editar Paciente</DialogTitle>
-                        <DialogContent>
-                            {pacienteSelecionado && (
-                                <form>
-                                    <TextField
-                                        fullWidth
-                                        margin="dense"
-                                        label="Nome"
-                                        type="text"
-                                        value={pacienteSelecionado.nome}
-                                        InputProps={{
-                                            readOnly: true,
-                                        }}
-                                        variant="outlined"
-                                    />
-                                    <TextField
-                                        fullWidth
-                                        margin="dense"
-                                        label="CPF"
-                                        type="text"
-                                        value={pacienteSelecionado.cpf}
-                                        InputProps={{
-                                            readOnly: true,
-                                        }}
-                                        variant="outlined"
-                                    />
-                                    <TextField
-                                        fullWidth
-                                        margin="dense"
-                                        label="RG"
-                                        type="text"
-                                        value={pacienteSelecionado.rg}
-                                        InputProps={{
-                                            readOnly: true,
-                                        }}
-                                        variant="outlined"
-                                    />
-                                    <TextField
-                                        fullWidth
-                                        margin="dense"
-                                        label="Sexo Biológico"
-                                        type="text"
-                                        value={pacienteSelecionado.sexoBiologico}
-                                        InputProps={{
-                                            readOnly: true,
-                                        }}
-                                        variant="outlined"
-                                    />
-                                    <TextField
-                                        fullWidth
-                                        margin="dense"
-                                        label="Gênero"
-                                        type="text"
-                                        value={pacienteSelecionado.genero}
-                                        onChange={(e) =>
-                                            setPacienteSelecionado((prev) => ({
-                                                ...prev,
-                                                genero: e.target.value,
-                                            }))
-                                        }
-                                        variant="outlined"
-                                    />
-                                    <TextField
-                                        fullWidth
-                                        margin="dense"
-                                        label="Data de Nascimento"
-                                        type="date"
-                                        value={pacienteSelecionado.dataNascimento}
-                                        onChange={(e) =>
-                                            setPacienteSelecionado((prev) => ({
-                                                ...prev,
-                                                dataNascimento: e.target.value,
-                                            }))
-                                        }
-                                        variant="outlined"
-                                        InputLabelProps={{ shrink: true }}
-                                    />
-                                    <TextField
-                                        fullWidth
-                                        margin="dense"
-                                        label="CEP"
-                                        type="text"
-                                        value={pacienteSelecionado.cep}
-                                        onChange={(e) =>
-                                            setPacienteSelecionado((prev) => ({
-                                                ...prev,
-                                                cep: e.target.value,
-                                            }))
-                                        }
-                                        variant="outlined"
-                                    />
-                                    <TextField
-                                        fullWidth
-                                        margin="dense"
-                                        label="Endereço"
-                                        type="text"
-                                        value={pacienteSelecionado.endereco}
-                                        onChange={(e) =>
-                                            setPacienteSelecionado((prev) => ({
-                                                ...prev,
-                                                endereco: e.target.value,
-                                            }))
-                                        }
-                                        variant="outlined"
-                                    />
-                                    <TextField
-                                        fullWidth
-                                        margin="dense"
-                                        label="Bairro"
-                                        type="text"
-                                        value={pacienteSelecionado.bairro}
-                                        onChange={(e) =>
-                                            setPacienteSelecionado((prev) => ({
-                                                ...prev,
-                                                bairro: e.target.value,
-                                            }))
-                                        }
-                                        variant="outlined"
-                                    />
-                                    <TextField
-                                        fullWidth
-                                        margin="dense"
-                                        label="Cidade"
-                                        type="text"
-                                        value={pacienteSelecionado.cidade}
-                                        onChange={(e) =>
-                                            setPacienteSelecionado((prev) => ({
-                                                ...prev,
-                                                cidade: e.target.value,
-                                            }))
-                                        }
-                                        variant="outlined"
-                                    />
-                                    <TextField
-                                        fullWidth
-                                        margin="dense"
-                                        label="Estado"
-                                        type="text"
-                                        value={pacienteSelecionado.estado}
-                                        onChange={(e) =>
-                                            setPacienteSelecionado((prev) => ({
-                                                ...prev,
-                                                estado: e.target.value,
-                                            }))
-                                        }
-                                        variant="outlined"
-                                    />
-                                    <TextField
-                                        fullWidth
-                                        margin="dense"
-                                        label="Número da residência"
-                                        type="text"
-                                        value={pacienteSelecionado.numeroResidencia}
-                                        onChange={(e) =>
-                                            setPacienteSelecionado((prev) => ({
-                                                ...prev,
-                                                numeroResidencia: e.target.value,
-                                            }))
-                                        }
-                                        variant="outlined"
-                                    />
-                                    <TextField
-                                        fullWidth
-                                        margin="dense"
-                                        label="Telefone"
-                                        type="text"
-                                        value={pacienteSelecionado.telefone}
-                                        onChange={(e) =>
-                                            setPacienteSelecionado((prev) => ({
-                                                ...prev,
-                                                telefone: e.target.value,
-                                            }))
-                                        }
-                                        variant="outlined"
-                                    />
-                                    <TextField
-                                        fullWidth
-                                        margin="dense"
-                                        label="Contato de Emergência"
-                                        type="text"
-                                        value={pacienteSelecionado.contatoEmergencia}
-                                        onChange={(e) =>
-                                            setPacienteSelecionado((prev) => ({
-                                                ...prev,
-                                                contatoEmergencia: e.target.value,
-                                            }))
-                                        }
-                                        variant="outlined"
-                                    />
-                                    <FormControlLabel
-                                        control={
-                                            <Checkbox
-                                                checked={pacienteSelecionado.temProntuarioAntigo}
-                                                onChange={(e) =>
-                                                    setPacienteSelecionado((prev) => ({
-                                                        ...prev,
-                                                        temProntuarioAntigo: e.target.checked,
-                                                    }))
-                                                }
-                                            />
-                                        }
-                                        label="Possui prontuário antigo?"
-                                    />
-                                    {pacienteSelecionado.temProntuarioAntigo && (
-                                        <>
-                                            <TextField
-                                                fullWidth
-                                                margin="dense"
-                                                label="Número do Prontuário Antigo"
-                                                type="text"
-                                                value={pacienteSelecionado.prontuarioAntigo}
-                                                onChange={(e) =>
-                                                    setPacienteSelecionado((prev) => ({
-                                                        ...prev,
-                                                        prontuarioAntigo: e.target.value,
-                                                    }))
-                                                }
-                                                variant="outlined"
-                                            />
-                                            <TextField
-                                                fullWidth
-                                                margin="dense"
-                                                label="Localização do Prontuário Antigo"
-                                                type="text"
-                                                value={pacienteSelecionado.localizacaoProntuarioAntigo}
-                                                onChange={(e) =>
-                                                    setPacienteSelecionado((prev) => ({
-                                                        ...prev,
-                                                        localizacaoProntuarioAntigo: e.target.value,
-                                                    }))
-                                                }
-                                                variant="outlined"
-                                            />
-                                        </>
-                                    )}
-                                </form>
-                            )}
-                        </DialogContent>
-                        <DialogActions>
-                            <Button onClick={handleFecharModalEditar}>Cancelar</Button>
-                            <Button
-                                onClick={() => handleAtualizarPaciente(pacienteSelecionado)}
-                                variant="contained"
-                                color="primary"
-                            >
-                                Salvar
+                            <Button onClick={handleFecharModalDetalhes}>
+                                Fechar
                             </Button>
                         </DialogActions>
                     </Dialog>
@@ -563,3 +335,5 @@ const PacientesCadastrados = () => {
 };
 
 export default PacientesCadastrados;
+
+//adicionar ´numero de prontuario antigo

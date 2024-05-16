@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Container, TextField, Button, Box, Typography, MenuItem, FormControl, InputLabel, Select, Checkbox, FormControlLabel } from '@mui/material';
+import { Container, TextField, Button, Box, Typography, MenuItem, FormControl, InputLabel, Select } from '@mui/material';
 import { getFirestore, collection, addDoc } from 'firebase/firestore';
 import axios from 'axios';
 import MenuPrincipal from '../MenuPrincipal'; // Ajuste o caminho conforme necessário
 import useStyles from './CadastroPacienteStyles';
 
-const CadastroPaciente = ({ onSalvar }) => {
+const CadastroPaciente = () => {
   const [nome, setNome] = useState('');
   const [cpf, setCpf] = useState('');
   const [rg, setRg] = useState('');
@@ -21,9 +21,6 @@ const CadastroPaciente = ({ onSalvar }) => {
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
   const [contatoEmergencia, setContatoEmergencia] = useState('');
-  const [temProntuarioAntigo, setTemProntuarioAntigo] = useState(false);
-  const [prontuarioAntigo, setProntuarioAntigo] = useState('');
-  const [localizacaoProntuarioAntigo, setLocalizacaoProntuarioAntigo] = useState('');
 
   const styles = useStyles();
 
@@ -62,7 +59,7 @@ const CadastroPaciente = ({ onSalvar }) => {
   const cadastrarPaciente = async () => {
     if (nome && cpf && rg && sexoBiologico && genero && dataNascimento && endereco && bairro && cidade && estado && cep && numeroResidencia && email && telefone && contatoEmergencia) {
       try {
-        const pacienteData = {
+        await addDoc(collection(firestore, 'pacientes_cadastrados'), {
           nome,
           cpf,
           rg,
@@ -77,17 +74,8 @@ const CadastroPaciente = ({ onSalvar }) => {
           numeroResidencia,
           email,
           telefone,
-          contatoEmergencia,
-        };
-
-        if (temProntuarioAntigo) {
-          pacienteData.prontuarioAntigo = prontuarioAntigo;
-          pacienteData.localizacaoProntuarioAntigo = localizacaoProntuarioAntigo;
-        }
-
-        const docRef = await addDoc(collection(firestore, 'pacientes_cadastrados'), pacienteData);
-        const novoPaciente = { id: docRef.id, ...pacienteData };
-        onSalvar(novoPaciente);  // Chama a função de callback passada do componente pai
+          contatoEmergencia
+        });
         alert('Sucesso: Paciente cadastrado com sucesso!');
       } catch (error) {
         console.error('Erro ao salvar no Firestore:', error);
@@ -102,6 +90,7 @@ const CadastroPaciente = ({ onSalvar }) => {
     <Container maxWidth="sm">
       <MenuPrincipal />
       <Box component="form" sx={styles.formContainer} noValidate autoComplete="off">
+
         <Typography variant="h6" gutterBottom>Dados do Paciente</Typography>
         <TextField fullWidth label="Nome completo" value={nome} onChange={(e) => setNome(e.target.value)} margin="normal" variant="outlined" />
         <TextField fullWidth label="CPF" value={cpf} onChange={handleChangeCPF} margin="normal" variant="outlined" inputProps={{ maxLength: 14 }} />
@@ -148,22 +137,6 @@ const CadastroPaciente = ({ onSalvar }) => {
         <TextField fullWidth label="Cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} margin="normal" variant="outlined" />
         <TextField fullWidth label="Estado" value={estado} onChange={(e) => setEstado(e.target.value)} margin="normal" variant="outlined" />
         <TextField fullWidth label="Número da residência" value={numeroResidencia} onChange={(e) => setNumeroResidencia(e.target.value)} margin="normal" variant="outlined" />
-
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={temProntuarioAntigo}
-              onChange={(e) => setTemProntuarioAntigo(e.target.checked)}
-            />
-          }
-          label="Possui prontuário antigo?"
-        />
-        {temProntuarioAntigo && (
-          <>
-            <TextField fullWidth label="Número do Prontuário Antigo" value={prontuarioAntigo} onChange={(e) => setProntuarioAntigo(e.target.value)} margin="normal" variant="outlined" />
-            <TextField fullWidth label="Localização do Prontuário Antigo" value={localizacaoProntuarioAntigo} onChange={(e) => setLocalizacaoProntuarioAntigo(e.target.value)} margin="normal" variant="outlined" />
-          </>
-        )}
 
         <Button fullWidth variant="contained" color="primary" onClick={cadastrarPaciente} sx={styles.submitButton}>Cadastrar</Button>
       </Box>

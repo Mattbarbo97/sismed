@@ -75,9 +75,13 @@ const ModalDetalhesUsuario = ({
 
     const handleClose = () => {
         fecharModal();
+    };
+
+    const handleSave = () => {
         if (modoEdicao) {
             onSave(editandoUsuario);
         }
+        fecharModal();
     };
 
     return (
@@ -215,13 +219,17 @@ const ModalDetalhesUsuario = ({
             </DialogContent>
             <DialogActions>
                 <Button onClick={handleClose}>
-                    {modoEdicao ? "Salvar" : "Fechar"}
+                    {modoEdicao ? "Cancelar" : "Fechar"}
                 </Button>
+                {modoEdicao && (
+                    <Button onClick={handleSave}>
+                        Salvar
+                    </Button>
+                )}
             </DialogActions>
         </Dialog>
     );
 };
-
 
 const UsuariosCadastrados = () => {
     const [usuarios, setUsuarios] = useState([]);
@@ -500,7 +508,6 @@ const UsuariosCadastrados = () => {
                                             <TableCell>
                                                 {usuario.funcao || "Carregando..."} {/* Mostra "Carregando..." enquanto a função está sendo carregada */}
                                             </TableCell>
-
 
                                             <TableCell>
                                                 <AcoesUsuario

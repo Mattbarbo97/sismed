@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Box, Button, IconButton, Modal, Paper, Typography, InputAdornment, TextField, FormControlLabel, Checkbox
 } from '@mui/material';
@@ -31,19 +31,17 @@ const validationSchema = Yup.object().shape({
   anotacoes: Yup.string().required("As anotações da consulta são obrigatórias."),
 });
 
-
 const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
   const { user } = useUser();
   const [ReceituárioCounter, setReceituárioCounter] = useState(0);
   const [exameCounter, setExameCounter] = useState(0);
-  // eslint-disable-next-line
   const [confirmClear, setConfirmClear] = useState(false);
   const [openPrintModal, setOpenPrintModal] = useState(false);
   const [printContentList, setPrintContentList] = useState([]);
   const [printTitle, setPrintTitle] = useState('');
-  // eslint-disable-next-line
   const [isMultiple, setIsMultiple] = useState(false);
-  const [includeDate, setIncludeDate] = useState(true); // Estado para controlar a opção de incluir data
+  const [includeDate, setIncludeDate] = useState(true);
+  const printRef = useRef();
 
   const formik = useFormik({
     initialValues: {
@@ -128,6 +126,10 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
     setOpenPrintModal(false);
     setPrintContentList([]);
   };
+
+  if (!user) {
+    return null; // ou algum componente de carregamento
+  }
 
   return (
     <>
@@ -267,15 +269,16 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
       </Modal>
 
       <PrintableDocument
+        ref={printRef}
         open={openPrintModal}
         onClose={handlePrintModalClose}
         paciente={paciente}
         conteudo={printContentList}
         titulo={printTitle}
-        medico={{ nome: user.nome, crm: user.identificacaoProfissional }}
+        medico={user ? { nome: user.nome, crm: user.identificacaoProfissional } : {}}
         onDocumentPrinted={handleDocumentPrinted}
         isMultiple={true}
-        includeDate={includeDate} // Passa a opção de incluir data para o componente PrintableDocument
+        includeDate={includeDate}
       />
     </>
   );

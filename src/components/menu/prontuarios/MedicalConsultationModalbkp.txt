@@ -6,10 +6,10 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import PrintableDocument from './PrintableDocument';
 
-//value: "", key: `receita-${receitaCounter}`
+//value: "", key: `Receituário-${ReceituárioCounter}`
 
 const validationSchema = Yup.object().shape({
-    receitas: Yup.array().of(
+    Receituário: Yup.array().of(
         Yup.object().shape({
             value: Yup.string().required(
                 "O campo não pode estar vazio, se não for preencher, remova o campo."
@@ -29,14 +29,14 @@ const validationSchema = Yup.object().shape({
 });
 
 const MedicalConsultationModal = ({ open, onClose, paciente, doutor, handleSave }) => {
-    const [receitaCounter, setReceitaCounter] = useState(0);
+    const [ReceituárioCounter, setReceituárioCounter] = useState(0);
     const [exameCounter, setExameCounter] = useState(0);
     const [confirmClear, setConfirmClear] = useState(false);
     const [openPrintModal, setOpenPrintModal] = useState(false);
 
     const formik = useFormik({
         initialValues: {
-            receitas: [],
+            Receituário: [],
             exames: [],
             anotacoes: "",
         },
@@ -57,19 +57,19 @@ const MedicalConsultationModal = ({ open, onClose, paciente, doutor, handleSave 
       };
     
 
-    const handleDeleteReceita = (index) => {
-        const newReceitas = [...formik.values.receitas];
-        newReceitas.splice(index, 1);
-        formik.setFieldValue("receitas", newReceitas);
+    const handleDeleteReceituário = (index) => {
+        const newReceituário = [...formik.values.Receituário];
+        newReceituário.splice(index, 1);
+        formik.setFieldValue("Receituário", newReceituário);
     };
 
-    const addReceita = () => {
-        const newReceita = { value: "", key: `receita-${receitaCounter}` };
-        formik.setFieldValue("receitas", [
-            ...formik.values.receitas,
-            newReceita,
+    const addReceituário = () => {
+        const newReceituário = { value: "", key: `Receituário-${ReceituárioCounter}` };
+        formik.setFieldValue("Receituário", [
+            ...formik.values.Receituário,
+            newReceituário,
         ]);
-        setReceitaCounter(receitaCounter + 1);
+        setReceituárioCounter(ReceituárioCounter + 1);
     };
 
     const handleDeleteExame = (index) => {
@@ -108,30 +108,30 @@ const MedicalConsultationModal = ({ open, onClose, paciente, doutor, handleSave 
                     </Typography>
                     <form onSubmit={formik.handleSubmit}>
                         <Box mb={2}>
-                            <Typography variant="h6">Receitas</Typography>
+                            <Typography variant="h6">Receituário</Typography>
                             <Box
                                 display="flex"
                                 flexDirection="column"
                                 alignItems="center"
                                 gap={2}
                             >
-                                {formik.values.receitas.map(
-                                    (receita, index) => (
+                                {formik.values.Receituário.map(
+                                    (Receituário, index) => (
                                         <Input
-                                            key={receita.key}
-                                            value={receita.value}
-                                            name={`receitas[${index}].value`}
+                                            key={Receituário.key}
+                                            value={Receituário.value}
+                                            name={`Receituário[${index}].value`}
                                             onChange={formik.handleChange}
                                             error={
-                                                formik.touched.receitas &&
-                                                Boolean(formik.errors.receitas)
+                                                formik.touched.Receituário &&
+                                                Boolean(formik.errors.Receituário)
                                             }
                                             endAdornment={
                                                 <InputAdornment position="end">
                                                     <IconButton
                                                         aria-label="delete field"
                                                         onClick={() =>
-                                                            handleDeleteReceita(
+                                                            handleDeleteReceituário(
                                                                 index
                                                             )
                                                         }
@@ -146,22 +146,22 @@ const MedicalConsultationModal = ({ open, onClose, paciente, doutor, handleSave 
                                         />
                                     )
                                 )}
-                                {formik.touched.receitas &&
-                                    Boolean(formik.errors.receitas) && (
+                                {formik.touched.Receituário &&
+                                    Boolean(formik.errors.Receituário) && (
                                         <Typography
                                             variant="subtitle2"
                                             color="error"
                                         >
                                             {
-                                                formik.errors.receitas[
-                                                    formik.errors.receitas
+                                                formik.errors.Receituário[
+                                                    formik.errors.Receituário
                                                         .length - 1
                                                 ].value
                                             }
                                         </Typography>
                                     )}
                             </Box>
-                            <IconButton onClick={addReceita}>
+                            <IconButton onClick={addReceituário}>
                                 <AddIcon />
                             </IconButton>
                         </Box>
@@ -345,7 +345,7 @@ const MedicalConsultationModal = ({ open, onClose, paciente, doutor, handleSave 
              clinica={{ nome: "Nome da Clínica", endereco: "Endereço da Clínica" }} // Use os dados reais aqui
              medico={doutor} // Supondo que 'doutor' tem propriedades como 'nome' e 'crm'
              paciente={paciente} // Supondo que 'paciente' tem propriedades como 'nome' e 'dataNascimento'
-             receita={formik.values.receitas.map(r => r.value).join("\n")} // Junta todas as receitas em uma string separada por quebras de linha
+             Receituário={formik.values.Receituário.map(r => r.value).join("\n")} // Junta todas as Receituário em uma string separada por quebras de linha
            />
         </>
     );

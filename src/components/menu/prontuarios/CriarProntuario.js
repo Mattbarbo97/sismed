@@ -20,8 +20,10 @@ import {
 import {
     collection,
     doc,
+    getDoc,
     getDocs,
     getFirestore,
+    runTransaction,
     setDoc,
 } from "firebase/firestore";
 import React, { useCallback, useEffect, useState } from "react";
@@ -56,6 +58,33 @@ const takeFirst80Char = (text) => {
     return text.length > 80 ? text.substring(0, 80) + "..." : text;
 };
 
+const getNextProntuarioId = async () => {
+    const db = getFirestore();
+    const counterDocRef = doc(db, "counters", "prontuarioId");
+
+    try {
+        const newId = await runTransaction(db, async (transaction) => {
+            const counterDoc = await transaction.get(counterDocRef);
+            if (!counterDoc.exists()) {
+                // Iniciar o contador se ele não existir
+                transaction.set(counterDocRef, { currentId: 1 });
+                return 1;
+            }
+
+            const currentId = counterDoc.data().currentId;
+            const nextId = currentId + 1;
+            transaction.update(counterDocRef, { currentId: nextId });
+
+            return nextId;
+        });
+
+        return newId.toString().padStart(6, '0');
+    } catch (e) {
+        console.error("Transaction failed: ", e);
+        throw e;
+    }
+};
+
 const ProntuarioEletronico = () => {
     const [pacienteSelecionado, setPacienteSelecionado] = useState({
         id: "",
@@ -74,7 +103,7 @@ const ProntuarioEletronico = () => {
     const [historico, setHistorico] = useState([]);
     const [pacientes, setPacientes] = useState([]);
     const [modalConsultaAberto, setModalConsultaAberto] = useState(false);
-    const [prontuarioSelecionado, setProntuarioSelecionado] = useState([]);
+    const [prontuarioSelecionado, setProntuarioSelecionado] = useState(null);
     const [viewProntuarioModal, setViewProntuarioModal] = useState(false);
 
     const { user } = useUser();
@@ -84,6 +113,7 @@ const ProntuarioEletronico = () => {
         const pacientesCollection = collection(firestore, "pacientes_cadastrados");
 
         const listarPacientes = async () => {
+            setLoading(true);
             try {
                 const snapshot = await getDocs(pacientesCollection);
                 const pacientesList = snapshot.docs.map((doc) => ({
@@ -101,28 +131,27 @@ const ProntuarioEletronico = () => {
         listarPacientes();
     }, []);
 
-    // Função para salvar anotações do prontuário
     const salvarProntuario = async (data) => {
-        console.log(data);
         if (!pacienteSelecionado.id) {
-            // Adicione uma lógica para lidar com a ausência de texto
             return;
         }
         setLoading(true);
         try {
+            const novoId = await getNextProntuarioId();
             const dados = {
+                id: novoId,
                 texto: data.anotacoes,
                 exames: data.exames,
-                receitas: data.receitas,
+                Receituário: data.Receituário,
                 data: new Date(),
                 paciente: pacienteSelecionado,
                 user_id: pacienteSelecionado.id,
                 medico: user,
             };
             const historicoCollection = collection(firestore, "prontuarios");
-            await setDoc(doc(historicoCollection), dados);
+            await setDoc(doc(historicoCollection, novoId), dados);
             setModalConsultaAberto(false);
-            buscarAnotacoes();
+            await buscarAnotacoes();
         } catch (error) {
             console.error("Erro ao salvar anotações:", error);
         }
@@ -134,7 +163,6 @@ const ProntuarioEletronico = () => {
             return;
         }
         setLoading(true);
-        // Buscar anotações do paciente selecionado com order by data
         try {
             const historicoCollection = collection(firestore, "prontuarios");
             const historicoSnapshot = await getDocs(historicoCollection);
@@ -148,7 +176,6 @@ const ProntuarioEletronico = () => {
                 )
                 .sort((a, b) => b.data.toDate() - a.data.toDate());
             setHistorico(historicoList);
-            console.log(historicoList);
         } catch (error) {
             console.log(error);
         }
@@ -374,11 +401,13 @@ const ProntuarioEletronico = () => {
                 handleSave={salvarProntuario}
             />
 
-            <ViewProntuarioModal
-                prontuario={prontuarioSelecionado}
-                open={viewProntuarioModal}
-                onClose={() => setViewProntuarioModal(false)}
-            />
+            {prontuarioSelecionado && (
+                <ViewProntuarioModal
+                    prontuario={prontuarioSelecionado}
+                    open={viewProntuarioModal}
+                    onClose={() => setViewProntuarioModal(false)}
+                />
+            )}
 
             {loading && (
                 <Box

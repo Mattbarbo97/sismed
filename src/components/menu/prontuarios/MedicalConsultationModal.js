@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Box, Button, IconButton, Modal, Paper, Typography, Input, InputAdornment, TextField
+  Box, Button, IconButton, Modal, Paper, Typography, InputAdornment, TextField, FormControlLabel, Checkbox
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -14,17 +14,17 @@ const timeZone = 'America/Sao_Paulo';
 
 function getBrazilTime() {
   const now = new Date();
-  return formatInTimeZone(now, timeZone, 'yyyy-MM-dd HH:mm:ssXXX');
+  return formatInTimeZone(now, timeZone, 'dd/MM/yyyy HH:mm:ssXXX');
 }
 
 const validationSchema = Yup.object().shape({
-  receitas: Yup.array().of(
+  Receituário: Yup.array().of(
     Yup.object().shape({
       value: Yup.string().required("O campo não pode estar vazio, se não for preencher, remova o campo."),
     })
   ),
   exames: Yup.array().of(
-    Yup.object().shape({
+    Yup.object().hape({
       value: Yup.string().required("O campo não pode estar vazio, se não for preencher, remova o campo."),
     })
   ),
@@ -33,17 +33,20 @@ const validationSchema = Yup.object().shape({
 
 const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
   const { user } = useUser();
-  const [receitaCounter, setReceitaCounter] = useState(0);
+  const [ReceituárioCounter, setReceituárioCounter] = useState(0);
   const [exameCounter, setExameCounter] = useState(0);
+  // eslint-disable-next-line
   const [confirmClear, setConfirmClear] = useState(false);
   const [openPrintModal, setOpenPrintModal] = useState(false);
   const [printContentList, setPrintContentList] = useState([]);
-  const [printIndex, setPrintIndex] = useState(0);
   const [printTitle, setPrintTitle] = useState('');
+  // eslint-disable-next-line
+  const [isMultiple, setIsMultiple] = useState(false);
+  const [includeDate, setIncludeDate] = useState(true); // Estado para controlar a opção de incluir data
 
   const formik = useFormik({
     initialValues: {
-      receitas: [],
+      Receituário: [],
       exames: [],
       anotacoes: "",
       dataAtendimento: getBrazilTime(),
@@ -59,39 +62,35 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
   const handleKeyDown = (event, field, index) => {
     if (event.key === 'Enter') {
       event.preventDefault();
-      const updatedValue = formik.values[field][index].value + '\n';
-      formik.setFieldValue(`${field}[${index}].value`, updatedValue);
+      const currentValue = formik.values[field][index].value.trim();
+      if (currentValue !== "") {
+        const lines = currentValue.split('\n');
+        const lastLine = lines[lines.length - 1];
+        const lastNumber = parseInt(lastLine.split('-')[0].trim(), 10);
+        const newLineNumber = isNaN(lastNumber) ? 1 : lastNumber + 1;
+        const newValue = `${currentValue}\n${newLineNumber}- `;
+        formik.setFieldValue(`${field}[${index}].value`, newValue);
+      }
     }
   };
 
-  const handleDocumentPrinted = () => {
+  const handleDocumentPrinted = (documentType) => {
     const currentNotes = formik.values.anotacoes;
-    const printNote = `Documento impresso em ${getBrazilTime()}`;
+    const printNote = `Documento de ${documentType} impresso em ${getBrazilTime()}`;
     const updatedNotes = currentNotes + '\n' + printNote;
     formik.setFieldValue('anotacoes', updatedNotes);
-
-    // Avança para o próximo documento da lista
-    if (printIndex + 1 < printContentList.length) {
-      setPrintIndex(printIndex + 1);
-    } else {
-      setOpenPrintModal(false);
-      setPrintIndex(0);
-      setPrintContentList([]);
-    }
   };
 
-
-  // eslint-disable-next-line
-  const handleDeleteReceita = (index) => {
-    const newReceitas = [...formik.values.receitas];
-    newReceitas.splice(index, 1);
-    formik.setFieldValue("receitas", newReceitas);
+  const handleDeleteReceituário = (index) => {
+    const newReceituário = [...formik.values.Receituário];
+    newReceituário.splice(index, 1);
+    formik.setFieldValue("Receituário", newReceituário);
   };
 
-  const addReceita = () => {
-    const newReceita = { value: "", key: `receita-${receitaCounter}` };
-    formik.setFieldValue("receitas", [...formik.values.receitas, newReceita]);
-    setReceitaCounter(receitaCounter + 1);
+  const addReceituário = () => {
+    const newReceituário = { value: "1- ", key: `Receituário-${ReceituárioCounter}` };
+    formik.setFieldValue("Receituário", [...formik.values.Receituário, newReceituário]);
+    setReceituárioCounter(ReceituárioCounter + 1);
   };
 
   const handleDeleteExame = (index) => {
@@ -101,28 +100,31 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
   };
 
   const addExame = () => {
-    const newExame = { value: "", key: `exame-${exameCounter}` };
+    const newExame = { value: "1- ", key: `exame-${exameCounter}` };
     formik.setFieldValue("exames", [...formik.values.exames, newExame]);
     setExameCounter(exameCounter + 1);
   };
 
-  const imprimirReceita = () => {
-    const formattedPrescriptions = formik.values.receitas.map((r, index) => `Receita ${index + 1}:\n${r.value}`);
-    setPrintTitle('Receita Médica');
+  const imprimirReceituário = () => {
+    const formattedPrescriptions = formik.values.Receituário.map((r) => `${r.value}`);
+    setPrintTitle('Receituário');
     setPrintContentList(formattedPrescriptions.map(p => p.replace(/\n/g, '<br>')));
+    setIsMultiple(true);
+    handleDocumentPrinted('Receituário');
     setOpenPrintModal(true);
   };
 
   const imprimirExames = () => {
-    const formattedExams = formik.values.exames.map((e, index) => `Exame ${index + 1}:\n${e.value}`);
-    setPrintTitle('Pedido de Exame');
+    const formattedExams = formik.values.exames.map((e) => `${e.value}`);
+    setPrintTitle('Solicitação de exame');
     setPrintContentList(formattedExams.map(e => e.replace(/\n/g, '<br>')));
+    setIsMultiple(true);
+    handleDocumentPrinted('Solicitação de exame');
     setOpenPrintModal(true);
   };
 
   const handlePrintModalClose = () => {
     setOpenPrintModal(false);
-    setPrintIndex(0);
     setPrintContentList([]);
   };
 
@@ -145,187 +147,135 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
           <Typography variant="h6" style={{ textAlign: "center" }}>Novo Atendimento</Typography>
           <Typography variant="subtitle1">Paciente: {paciente.nome}</Typography>
           <form onSubmit={formik.handleSubmit}>
-            <Typography variant="h6">Receitas</Typography>
+            <Typography variant="h6">Receituário</Typography>
             <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
-              {formik.values.receitas.map((receita, index) => (
+              {formik.values.Receituário.map((Receituário, index) => (
                 <TextField
-                  key={receita.key}
-                  value={receita.value}
-                  name={`receitas[${index}].value`}
-                  onChange={formik.handleChange}
-                  onKeyDown={(e) => handleKeyDown(e, 'receitas', index)}
-                  error={formik.touched.receitas && Boolean(formik.errors.receitas)}
-                  helperText={formik.touched.receitas && formik.errors.receitas}
-                  fullWidth
+                  key={Receituário.key}
+                  label={`Receituário ${index + 1}`}
+                  value={Receituário.value}
+                  onChange={(e) => formik.setFieldValue(`Receituário[${index}].value`, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(e, 'Receituário', index)}
                   multiline
+                  rows={4}
                   variant="outlined"
-                  margin="normal"
+                  fullWidth
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => handleDeleteReceituário(index)}><CancelIcon /></IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
                 />
               ))}
-              <IconButton onClick={addReceita}>
-                <AddIcon />
-              </IconButton>
+              <Box display="flex" justifyContent="space-between" alignItems="center" width="100%">
+                <Button startIcon={<AddIcon />} onClick={addReceituário} variant="contained" sx={{ flex: 1, marginRight: 1 }}>Adicionar Receituário</Button>
+                <Button startIcon={<AddIcon />} onClick={imprimirReceituário} variant="contained" sx={{ flex: 1, marginRight: 1 }}>Imprimir Receituário</Button>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={includeDate}
+                      onChange={(e) => setIncludeDate(e.target.checked)}
+                      name="includeDate"
+                      color="primary"
+                    />
+                  }
+                  label="Incluir data"
+                  sx={{ flex: 1 }}
+                />
+              </Box>
             </Box>
 
-            <Typography variant="h6">Pedidos de Exames</Typography>
+            <Typography variant="h6" sx={{ mt: 2 }}>Pedidos de Exame</Typography>
             <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
               {formik.values.exames.map((exame, index) => (
-                <Input
+                <TextField
                   key={exame.key}
+                  label={`Exame ${index + 1}`}
                   value={exame.value}
-                  name={`exames[${index}].value`}
-                  onChange={formik.handleChange}
+                  onChange={(e) => formik.setFieldValue(`exames[${index}].value`, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, 'exames', index)}
-                  error={formik.touched.exames && Boolean(formik.errors.exames)}
-                  endAdornment={
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label="delete field"
-                        onClick={() => handleDeleteExame(index)}
-                        edge="end"
-                      >
-                        <CancelIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  }
-                  fullWidth
                   multiline
+                  rows={4}
+                  variant="outlined"
+                  fullWidth
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => handleDeleteExame(index)}><CancelIcon /></IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
                 />
               ))}
-              <IconButton onClick={addExame}>
-                <AddIcon />
-              </IconButton>
+              <Box display="flex" justifyContent="space-between" alignItems="center" width="100%">
+                <Button startIcon={<AddIcon />} onClick={addExame} variant="contained" sx={{ flex: 1, marginRight: 1 }}>Adicionar Exame</Button>
+                <Button startIcon={<AddIcon />} onClick={imprimirExames} variant="contained" sx={{ flex: 1, marginRight: 1 }}>Imprimir Solicitação de exame</Button>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={includeDate}
+                      onChange={(e) => setIncludeDate(e.target.checked)}
+                      name="includeDate"
+                      color="primary"
+                    />
+                  }
+                  label="Incluir data"
+                  sx={{ flex: 1 }}
+                />
+              </Box>
             </Box>
 
-            <Typography variant="h6">Anotações da Consulta</Typography>
-            <TextField
-              label="Anotações"
-              value={formik.values.anotacoes}
-              name="anotacoes"
-              helperText={formik.touched.anotacoes && formik.errors.anotacoes}
-              error={formik.touched.anotacoes && Boolean(formik.errors.anotacoes)}
-              onChange={formik.handleChange}
-              fullWidth
-              multiline
-              rows={4}
-            />
+            <Box display="flex" flexDirection="column" alignItems="center" gap={2} sx={{ mt: 2 }}>
+              <Typography variant="h6">Anotações da Consulta</Typography>
+              <TextField
+                label="Anotações da Consulta"
+                value={formik.values.anotacoes}
+                onChange={(e) => formik.setFieldValue('anotacoes', e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, 'anotacoes')}
+                multiline
+                rows={8}
+                variant="outlined"
+                fullWidth
+              />
+            </Box>
 
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 2,
-                mt: 2,
-              }}
-            >
+            <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Button
+                type="button"
                 variant="contained"
                 color="primary"
-                type="submit"
+                onClick={formik.handleSubmit}
+                fullWidth
               >
-                Salvar Prontuário
+                Salvar Atendimento
               </Button>
               <Button
+                type="button"
                 variant="contained"
                 color="secondary"
-                onClick={imprimirReceita}
+                onClick={onClose}
+                fullWidth
               >
-                Imprimir Receita
-              </Button>
-              <Button
-                variant="contained"
-                onClick={imprimirExames}
-                sx={{ ml: 2 }}
-              >
-                Imprimir Exames
-              </Button>
-              <Button
-                variant="contained"
-                sx={{
-                  backgroundColor: "#f44336",
-                  "&:hover": {
-                    backgroundColor: "#d32f2f",
-                  },
-                }}
-                onClick={() => setConfirmClear(true)}
-              >
-                Limpar tudo
+                Cancelar
               </Button>
             </Box>
           </form>
         </Paper>
       </Modal>
-      <Modal open={confirmClear}>
-        <Paper
-          sx={{
-            position: "absolute",
-            bgcolor: "background.paper",
-            width: "40%",
-            p: 4,
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-          }}
-        >
-          <Typography variant="h6" align="center">
-            Tem certeza que deseja limpar tudo?
-          </Typography>
-          <Typography
-            variant="subtitle1"
-            align="center"
-            sx={{
-              color: "#f44336",
-              opacity: 0.8,
-              marginBottom: 4,
-            }}
-          >
-            Essa ação não pode ser desfeita
-          </Typography>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 2,
-              marginTop: 2,
-            }}
-          >
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => {
-                formik.resetForm();
-                setConfirmClear(false);
-              }}
-            >
-              Sim
-            </Button>
-            <Button
-              variant="contained"
-              sx={{
-                backgroundColor: "#f44336",
-                "&:hover": {
-                    backgroundColor: "#d32f2f",
-                },
-              }}
-              onClick={() => setConfirmClear(false)}
-            >
-              Não
-            </Button>
-          </Box>
-        </Paper>
-      </Modal>
-      {printContentList.length > 0 && (
-        <PrintableDocument
-          open={openPrintModal}
-          onClose={handlePrintModalClose}
-          clinica={{ nome: "Nome da Clínica", endereco: "Endereço da Clínica" }}
-          paciente={paciente}
-          conteudo={printContentList[printIndex]}
-          titulo={printTitle}
-          onDocumentPrinted={handleDocumentPrinted}
-          medico={{ nome: user?.nome, crm: user?.identificacaoProfissional }}
-        />
-      )}
+
+      <PrintableDocument
+        open={openPrintModal}
+        onClose={handlePrintModalClose}
+        paciente={paciente}
+        conteudo={printContentList}
+        titulo={printTitle}
+        medico={{ nome: user.nome, crm: user.identificacaoProfissional }}
+        onDocumentPrinted={handleDocumentPrinted}
+        isMultiple={true}
+        includeDate={includeDate} // Passa a opção de incluir data para o componente PrintableDocument
+      />
     </>
   );
 };

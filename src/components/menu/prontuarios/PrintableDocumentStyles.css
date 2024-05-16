@@ -38,11 +38,34 @@
   justify-content: center;
 }
 
+.main-title {
+  text-align: center;
+  font-weight: bold;
+  color: black;
+  width: 100%;
+}
+
 .section-title {
   font-weight: bold;
   text-decoration: underline;
   margin-top: 20px;
   margin-bottom: 5px;
+}
+
+.prescription-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.prescription-title {
+  font-weight: bold;
+  color: black;
+}
+
+.print-date {
+  text-align: right;
+  color: black;
 }
 
 .section-content {
@@ -124,9 +147,6 @@
   background-color: #895825 !important; /* Cor de fundo dos botões ao passar o mouse */
 }
 
-
-
-
 @media print {
   .print-button, .cancel-button, .modal-background {
     display: none;
@@ -135,19 +155,15 @@
 
 @media screen {
   .modal-background {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: rgba(0, 0, 0, 0.5);
-  }
-  .page {
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-    margin: 20px auto;
-    height: auto;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
   }
 }

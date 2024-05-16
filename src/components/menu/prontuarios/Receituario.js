@@ -9,7 +9,7 @@ import {
   TextField,
   Typography
 } from '@mui/material';
-//import './ReceitaMedica.css';  
+//import './ReceituárioMedica.css';  
 
 const Receituario = ({ open, onClose, onSave }) => {
   const [paciente, setPaciente] = useState('');
@@ -18,7 +18,7 @@ const Receituario = ({ open, onClose, onSave }) => {
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Emissão de Receitas Médicas</DialogTitle>
+      <DialogTitle>Emissão de Receituário Médicas</DialogTitle>
       <DialogContent>
         <Typography variant="h6" gutterBottom>
           Dados do Paciente
@@ -55,7 +55,7 @@ const Receituario = ({ open, onClose, onSave }) => {
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancelar</Button>
-        <Button onClick={() => onSave({ paciente, prescricoes, observacoes })}>Salvar Receita</Button>
+        <Button onClick={() => onSave({ paciente, prescricoes, observacoes })}>Salvar Receituário</Button>
         <Button onClick={() => window.print()}>Imprimir</Button>
       </DialogActions>
     </Dialog>

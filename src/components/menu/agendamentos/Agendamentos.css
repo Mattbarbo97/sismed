@@ -1,0 +1,38 @@
+.container {
+  max-width: 800px; /* Limite de largura para o formulário */
+  margin: auto; /* Centraliza o formulário na página */
+  padding: 20px; /* Espaçamento interno */
+  background-color: #fff; /* Cor de fundo */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Sombra suave ao redor do formulário */
+  border-radius: 8px; /* Bordas arredondadas */
+}
+
+.header {
+  color: #a26e35; /* Cor primária do tema */
+  margin-bottom: 20px; /* Espaçamento abaixo do cabeçalho */
+}
+
+.input-label {
+  display: block; /* Faz o label ocupar a linha inteira */
+  color: #333; /* Cor do texto */
+  margin-bottom: 5px; /* Espaçamento abaixo do label */
+}
+
+.input-field, .select-field {
+  width: 100%; /* Largura completa */
+  padding: 8px; /* Padding interno para aumentar a área clicável */
+  margin-bottom: 15px; /* Espaçamento abaixo do input */
+  border: 1px solid #ccc; /* Borda */
+  border-radius: 4px; /* Bordas arredondadas */
+}
+
+.button {
+  background-color: #a26e35; /* Cor primária do tema */
+  color: #fff; /* Texto branco */
+  border: none; /* Sem borda */
+  padding: 10px 20px; /* Padding interno */
+  border-radius: 4px; /* Bordas arredondadas */
+  cursor: pointer; /* Cursor do tipo pointer */
+  display: block; /* Ocupar a linha inteira */
+  width: 100%; /* Largura total */
+}

@@ -58,7 +58,7 @@ const SolicitacaoExames = ({ open, onClose, onSave }) => {
       </DialogContent>
       <DialogActions>
       <Button onClick={onClose}>Cancelar</Button>
-      <Button onClick={() => onSave({ paciente, exames, motivo })}>Salvar Solicitação de exame</Button>
+      <Button onClick={() => onSave({ paciente, exames, motivo })}>Salvar Pedido de Exame</Button>
       <Button onClick={() => window.print()}>Imprimir</Button>
       </DialogActions>
 

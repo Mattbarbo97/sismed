@@ -15,6 +15,7 @@ function getBrazilTime() {
 }
 
 // Função para validar e formatar data
+// eslint-disable-next-line
 function getFormattedDate(date) {
   const parsedDate = parseISO(date);
   if (isValid(parsedDate)) {
@@ -53,7 +54,7 @@ const PrintableDocument = forwardRef(({ open, onClose, paciente, conteudo, titul
   useEffect(() => {
     if (open && conteudo && conteudo.length > 0 && ref && ref.current) {
       handlePrint();
-    }
+    }// eslint-disable-next-line
   }, [open, currentIndex]);
 
   if (!open) {

@@ -1,6 +1,4 @@
-
-// eslint-disable-next-line
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Modal, Box, Button, Typography } from '@mui/material';
 import { useReactToPrint } from 'react-to-print';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -34,11 +32,12 @@ const PrintableDocument = () => {
       }
     },
   });
-
+   // eslint-disable-next-line
   useEffect(() => {
     if (open && conteudo && conteudo.length > 0) {
       handlePrint();
     }
+    // eslint-disable-next-line
   }, [open, currentIndex]);
 
   if (!open) {

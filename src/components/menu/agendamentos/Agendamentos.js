@@ -1,102 +1,68 @@
-import React from "react";
-import {
-    Button,
-    Dimensions,
-    Image,
-    StyleSheet,
-    Text,
-    View,
-} from "react-native";
-import { useUser } from "../../context/UserContext"; // Ajuste o caminho para UserContext
-import MenuPrincipal from "../menu/MenuPrincipal"; // Ajuste o caminho conforme necessário
+import React, { useState } from 'react';
+import { TextField, MenuItem, Button, FormControl, InputLabel, Select, Typography } from '@mui/material';
 
-const Home = ({ navigation }) => {
-    const { user, logOut } = useUser(); // Obtém o usuário e a função de logOut do contexto
+function Agendamento() {
+  const [categoria, setCategoria] = useState('');
+  const [servico, setServico] = useState('');
+  const [atendente, setAtendente] = useState('');
+  const [data, setData] = useState('');
 
-    const handleLogOut = () => {
-        logOut();
-        navigation.navigate("/"); // Navega para a tela de Login após logoff
-    };
+  const handleCategoriaChange = (event) => {
+    setCategoria(event.target.value);
+  };
 
-    return (
-        <View style={styles.container}>
-            <MenuPrincipal navigation={navigation} />
-            <View style={styles.logoContainer}>
-                <Image
-                    source={require("../../img/logoini.png")} // Ajuste o caminho para sua imagem de logotipo
-                    style={styles.logo}
-                />
-            </View>
-            <View style={styles.content}>
-                <Text style={styles.title}>Bem-vindo à UNNA</Text>
+  const handleServicoChange = (event) => {
+    setServico(event.target.value);
+  };
 
-                {/* Outros componentes */}
-                {user && (
-                    <View style={styles.headerContainer}>
-                        <Text style={styles.header}>
-                            {` - ${user.name} ${
-                                user.online ? "(Online)" : "Bem vindo"
-                            }`}
-                        </Text>
-                        <Button
-                            title="Logoff"
-                            onPress={handleLogOut}
-                            color="#a26e35"
-                        />
-                    </View>
-                )}
-            </View>
-        </View>
-    );
-};
+  const handleAtendenteChange = (event) => {
+    setAtendente(event.target.value);
+  };
 
-const window = Dimensions.get("window");
+  const handleDateChange = (event) => {
+    setData(event.target.value);
+  };
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: "center", // Centraliza o conteúdo verticalmente
-        alignItems: "center", // Centraliza o conteúdo horizontalmente
-        backgroundColor: "#fff", // Fundo branco para o conteúdo
-    },
-    logoContainer: {
-        position: "absolute", // Posicionamento absoluto para sobrepor os outros elementos
-        top: 0,
-        left: 0,
-        width: window.width, // Largura total da tela
-        height: window.height, // Altura total da tela
-        justifyContent: "center",
-        alignItems: "center",
-        opacity: 0.1, // Opacidade de 10%
-    },
-    logo: {
-        width: 300, // Largura do logotipo
-        height: 300, // Altura do logotipo
-        resizeMode: "contain",
-    },
-    content: {
-        width: "100%", // Ocupa 100% da largura disponível
-        padding: 20,
-    },
-    headerContainer: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 20,
-    },
-    header: {
-        color: "#333", // Cor para o cabeçalho
-        fontSize: 18,
-        fontWeight: "bold",
-    },
-    title: {
-        color: "#a26e35", // Dourado para o título
-        fontSize: 24,
-        fontWeight: "bold",
-        marginBottom: 20,
-        textAlign: "center", // Centraliza o texto do título
-    },
-    // Adicione outros estilos conforme necessário
-});
+  return (
+    <div style={{ padding: 20 }}>
+      <Typography variant="h6">Agendar Serviço</Typography>
+      <FormControl fullWidth margin="normal">
+        <InputLabel>Categoria</InputLabel>
+        <Select value={categoria} label="Categoria" onChange={handleCategoriaChange}>
+          <MenuItem value="massagem">Massagem</MenuItem>
+          <MenuItem value="acupuntura">Acupuntura</MenuItem>
+        </Select>
+      </FormControl>
+      <FormControl fullWidth margin="normal">
+        <InputLabel>Serviço</InputLabel>
+        <Select value={servico} label="Serviço" onChange={handleServicoChange}>
+          <MenuItem value="relaxante">Relaxante</MenuItem>
+          <MenuItem value="esportiva">Esportiva</MenuItem>
+        </Select>
+      </FormControl>
+      <FormControl fullWidth margin="normal">
+        <InputLabel>Atendente</InputLabel>
+        <Select value={atendente} label="Atendente" onChange={handleAtendenteChange}>
+          <MenuItem value="ana">Ana</MenuItem>
+          <MenuItem value="joao">João</MenuItem>
+        </Select>
+      </FormControl>
+      <TextField
+        label="Data"
+        type="date"
+        value={data}
+        onChange={handleDateChange}
+        InputLabelProps={{
+          shrink: true,
+        }}
+        fullWidth
+        margin="normal"
+      />
+      <Button variant="contained" color="primary" style={{ marginTop: 20 }}>
+        Confirmar Agendamento
+      </Button>
+    </div>
+  );
+}
 
-export default Home;
+export default Agendamento;

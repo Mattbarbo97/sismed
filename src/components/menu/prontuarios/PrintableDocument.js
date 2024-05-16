@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Modal, Box, Button, Typography } from '@mui/material';
 import { useReactToPrint } from 'react-to-print';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -27,12 +27,12 @@ const PrintableDocument = () => {
       if (currentIndex < conteudo.length - 1) {
         setCurrentIndex(currentIndex + 1);
       } else {
-        navigate(-1);  // Voltar para a página anterior
+        navigate(-1); // Voltar para a página anterior
         setCurrentIndex(0);
       }
     },
   });
-   // eslint-disable-next-line
+
   useEffect(() => {
     if (open && conteudo && conteudo.length > 0) {
       handlePrint();

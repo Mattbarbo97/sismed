@@ -4,19 +4,39 @@ import { useReactToPrint } from 'react-to-print';
 import './PrintableDocumentStyles.css';
 import logoClinica from '../../../img/logoprint.jpeg';
 import { formatInTimeZone } from 'date-fns-tz';
+import { parseISO, isValid } from 'date-fns';  // Corrigido para importar do pacote correto
 
 const timeZone = 'America/Sao_Paulo';
 
+// Função para obter a data atual formatada
 function getBrazilTime() {
   const now = new Date();
   return formatInTimeZone(now, timeZone, 'dd/MM/yyyy');
 }
 
+// Função para validar e formatar data
+function getFormattedDate(date) {
+  const parsedDate = parseISO(date);
+  if (isValid(parsedDate)) {
+    return formatInTimeZone(parsedDate, timeZone, 'dd/MM/yyyy');
+  } else {
+    return 'Data inválida';
+  }
+}
+
 const PrintableDocument = forwardRef(({ open, onClose, paciente, conteudo, titulo, medico, includeDate, onDocumentPrinted, zIndex = 1300 }, ref) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // Função para lidar com a impressão
   const handlePrint = useReactToPrint({
-    content: () => ref.current,
+    content: () => {
+      if (ref && ref.current) {
+        return ref.current;
+      } else {
+        console.warn('Referência do elemento de impressão é nula.');
+        return null;
+      }
+    },
     documentTitle: 'Documento Médico',
     onAfterPrint: () => {
       if (currentIndex < conteudo.length - 1) {
@@ -29,11 +49,11 @@ const PrintableDocument = forwardRef(({ open, onClose, paciente, conteudo, titul
     },
   });
 
+  // Efeito para acionar a impressão quando o modal é aberto
   useEffect(() => {
-    if (open && conteudo && conteudo.length > 0 && ref.current) {
+    if (open && conteudo && conteudo.length > 0 && ref && ref.current) {
       handlePrint();
     }
-    // eslint-disable-next-line
   }, [open, currentIndex]);
 
   if (!open) {

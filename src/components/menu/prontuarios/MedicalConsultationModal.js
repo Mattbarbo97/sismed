@@ -24,12 +24,13 @@ const validationSchema = Yup.object().shape({
     })
   ),
   exames: Yup.array().of(
-    Yup.object().hape({
+    Yup.object().shape({
       value: Yup.string().required("O campo não pode estar vazio, se não for preencher, remova o campo."),
     })
   ),
   anotacoes: Yup.string().required("As anotações da consulta são obrigatórias."),
 });
+
 
 const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
   const { user } = useUser();

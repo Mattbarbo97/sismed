@@ -1,372 +1,331 @@
-import React, { useState, useRef } from 'react';
-import { Box, Grid, Modal, Paper, Typography, Button, Checkbox, FormControlLabel } from "@mui/material";
-import formatDate from "../../../utils/formatDate";
-import formatPhone from "../../../utils/formatPhone";
-import PrintableDocument from '../../menu/prontuarios/PrintableDocument'; // Certifique-se de importar corretamente
-import { useUser } from "../../../context/UserContext";
+import React, { useState } from 'react';
+import {
+  Box, Button, IconButton, Modal, Paper, Typography, Input, InputAdornment, TextField
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import CancelIcon from '@mui/icons-material/Cancel';
+import { useFormik } from 'formik';
+import * as Yup from 'yup';
+import PrintableDocument from './PrintableDocument';
+import { formatInTimeZone } from 'date-fns-tz';
+import { useUser } from '../../../context/UserContext';
 
-const ViewProntuarioModal = ({ prontuario, open, onClose }) => {
-    const { user } = useUser();
-    const [includeDateReceita, setIncludeDateReceita] = useState(false);
-    const [includeDateExame, setIncludeDateExame] = useState(false);
-    const [anotacoes, setAnotacoes] = useState('');
-    const [printData, setPrintData] = useState({ open: false, conteudo: [], titulo: '', medico: {}, includeDate: false });
-    const printRef = useRef();
+const timeZone = 'America/Sao_Paulo';
 
-    const handleUpdateAnotacoes = (tipo) => {
-        const now = new Date();
-        const timestamp = `${tipo} impresso em ${now.toLocaleString()}`;
-        setAnotacoes((prev) => `${prev}\n${timestamp}`);
-    };
+function getBrazilTime() {
+  const now = new Date();
+  return formatInTimeZone(now, timeZone, 'yyyy-MM-dd HH:mm:ssXXX');
+}
 
-    const handleReimprimirReceita = () => {
-        if (!prontuario || !prontuario.Receituário) {
-            console.error('Receituário não definido');
-            return;
-        }
+const validationSchema = Yup.object().shape({
+  receitas: Yup.array().of(
+    Yup.object().shape({
+      value: Yup.string().required("O campo não pode estar vazio, se não for preencher, remova o campo."),
+    })
+  ),
+  exames: Yup.array().of(
+    Yup.object().shape({
+      value: Yup.string().required("O campo não pode estar vazio, se não for preencher, remova o campo."),
+    })
+  ),
+  anotacoes: Yup.string().required("As anotações da consulta são obrigatórias."),
+});
 
-        handleUpdateAnotacoes('Documento de Receituário');
-        setPrintData({
-            open: true,
-            paciente: prontuario.paciente,
-            conteudo: prontuario.Receituário.map(r => r.value.replace(/\n/g, '<br>')),
-            titulo: 'Receituário',
-            medico: prontuario.medico,
-            includeDate: includeDateReceita
-        });
-    };
+const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
+  const { user } = useUser();
+  const [receitaCounter, setReceitaCounter] = useState(0);
+  const [exameCounter, setExameCounter] = useState(0);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [openPrintModal, setOpenPrintModal] = useState(false);
+  const [printContentList, setPrintContentList] = useState([]);
+  const [printIndex, setPrintIndex] = useState(0);
+  const [printTitle, setPrintTitle] = useState('');
 
-    const handleReimprimirExame = () => {
-        if (!prontuario || !prontuario.exames) {
-            console.error('Exames não definidos');
-            return;
-        }
+  const formik = useFormik({
+    initialValues: {
+      receitas: [],
+      exames: [],
+      anotacoes: "",
+      dataAtendimento: getBrazilTime(),
+      horaAtendimento: getBrazilTime()
+    },
+    validationSchema: validationSchema,
+    onSubmit: (values) => {
+      handleSave(values);
+      formik.resetForm();
+    },
+  });
 
-        handleUpdateAnotacoes('Documento de Exame');
-        setPrintData({
-            open: true,
-            paciente: prontuario.paciente,
-            conteudo: prontuario.exames.map(e => e.value.replace(/\n/g, '<br>')),
-            titulo: 'Pedido de Exame',
-            medico: prontuario.medico,
-            includeDate: includeDateExame
-        });
-    };
-
-    const handlePrintModalClose = () => {
-        setPrintData({ open: false, conteudo: [], titulo: '', medico: {}, includeDate: false });
-    };
-
-    if (!prontuario) {
-        return (
-            <Modal open={open} onClose={onClose}>
-                <Paper
-                    sx={{
-                        position: "absolute",
-                        bgcolor: "background.paper",
-                        width: "80%",
-                        p: 4,
-                        top: "50%",
-                        left: "50%",
-                        transform: "translate(-50%, -50%)",
-                        maxHeight: "80vh",
-                        overflowY: "auto",
-                    }}
-                >
-                    <Box mb={2}>
-                        <Typography
-                            variant="h4"
-                            align="center"
-                            sx={{
-                                fontSize: "1.5rem",
-                            }}
-                        >
-                            Carregando...
-                        </Typography>
-                    </Box>
-                </Paper>
-            </Modal>
-        );
+  const handleKeyDown = (event, field, index) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const updatedValue = formik.values[field][index].value + '\n';
+      formik.setFieldValue(`${field}[${index}].value`, updatedValue);
     }
+  };
 
-    return (
-        <>
-            <Modal open={open} onClose={onClose}>
-                <Paper
-                    sx={{
-                        position: "absolute",
-                        bgcolor: "background.paper",
-                        width: "80%",
-                        p: 4,
-                        top: "50%",
-                        left: "50%",
-                        transform: "translate(-50%, -50%)",
-                        maxHeight: "80vh",
-                        overflowY: "auto",
-                    }}
-                >
-                    <Box mb={2}>
-                        <Typography
-                            variant="h4"
-                            align="center"
-                            sx={{
-                                fontSize: "1.5rem",
-                            }}
-                        >
-                            Prontuário {prontuario.id}
-                        </Typography>
-                    </Box>
-                    <Box
-                        mb={2}
-                        sx={{
-                            display: "flex",
-                            justifyContent: "center",
-                            flexDirection: "column",
-                            gap: 2,
-                        }}
-                    >
-                        <Typography variant="h5">
-                            Informações do paciente:
-                        </Typography>
-                        <Grid
-                            container
-                            spacing={0}
-                            sx={{
-                                backgroundColor: "#f5f5f5",
-                                padding: 2,
-                                justifyContent: "space-between",
-                                gap: 3,
-                            }}
-                        >
-                            <Grid item xs="auto">
-                                <Typography variant="body1">
-                                    <b>Nome:</b> {prontuario.paciente?.nome}
-                                </Typography>
-                            </Grid>
-                            <Grid item xs="auto">
-                                <Typography variant="body1">
-                                    <b>CPF:</b> {prontuario.paciente?.cpf}
-                                </Typography>
-                            </Grid>
-                            <Grid item xs="auto">
-                                <Typography variant="body1">
-                                    <b>Data de Nascimento:</b>{" "}
-                                    {formatDate(
-                                        new Date(
-                                            prontuario.paciente?.dataNascimento
-                                        )
-                                    )}
-                                </Typography>
-                            </Grid>
-                            <Grid item xs="auto">
-                                <Typography variant="body1">
-                                    <b>Sexo:</b> {prontuario.paciente?.genero}
-                                </Typography>
-                            </Grid>
-                            <Grid item xs="auto">
-                                <Typography variant="body1">
-                                    <b>Telefone:</b>{" "}
-                                    {formatPhone(prontuario.paciente?.telefone)}
-                                </Typography>
-                            </Grid>
-                        </Grid>
-                    </Box>
-                    <Box
-                        mb={2}
-                        sx={{
-                            display: "flex",
-                            justifyContent: "center",
-                            flexDirection: "column",
-                            gap: 2,
-                        }}
-                    >
-                        <Typography variant="h5">
-                            Detalhes do prontuário:
-                        </Typography>
-                        <Grid
-                            container
-                            spacing={0}
-                            sx={{
-                                backgroundColor: "#f5f5f5",
-                                padding: 2,
-                                justifyContent: "space-between",
-                                gap: 3,
-                            }}
-                        >
-                            <Grid item xs={12}>
-                                <Typography variant="body1">
-                                    <b>Médico responsável:</b>{" "}
-                                    {prontuario.medico?.nome} 
-                                </Typography>
-                            </Grid>
-                            <Grid item xs={12}>
-                                <Typography variant="body1">
-                                    <b>CRM:</b> {prontuario.medico?.crm || user.identificacaoProfissional}
-                                </Typography>
-                            </Grid>
-                            <Grid item xs={12}>
-                                <Typography variant="body1">
-                                    <b>Data da consulta:</b>{" "}
-                                    {formatDate(
-                                        prontuario.data?.toDate() || new Date()
-                                    )}
-                                </Typography>
-                            </Grid>
-                        </Grid>
-                    </Box>
-                    <Box
-                        mb={2}
-                        sx={{
-                            display: "flex",
-                            justifyContent: "center",
-                            flexDirection: "column",
-                            gap: 2,
-                        }}
-                    >
-                        <Typography variant="h5">
-                            Receituário:
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                onClick={handleReimprimirReceita}
-                                sx={{ marginLeft: 2 }}
-                            >
-                                Imprimir Receita
-                            </Button>
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        checked={includeDateReceita}
-                                        onChange={(e) => setIncludeDateReceita(e.target.checked)}
-                                    />
-                                }
-                                label="Incluir data"
-                            />
-                        </Typography>
-                        <Grid
-                            container
-                            spacing={0}
-                            sx={{
-                                backgroundColor: "#f5f5f5",
-                                padding: 2,
-                                justifyContent: "space-between",
-                                gap: 3,
-                            }}
-                        >
-                            {prontuario.Receituário?.length > 0 ? (
-                                prontuario.Receituário.map((Receituário, index) => (
-                                    <Grid item xs={12} key={index}>
-                                        <Typography variant="body1">
-                                            <b>Receituário {index + 1}:</b>{" "}
-                                            {Receituário.value}
-                                        </Typography>
-                                    </Grid>
-                                ))
-                            ) : (
-                                <Typography variant="body1">
-                                    Nenhuma Receituário cadastrada
-                                </Typography>
-                            )}
-                        </Grid>
-                    </Box>
-                    <Box
-                        mb={2}
-                        sx={{
-                            display: "flex",
-                            justifyContent: "center",
-                            flexDirection: "column",
-                            gap: 2,
-                        }}
-                    >
-                        <Typography variant="h5">
-                            Exames:
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                onClick={handleReimprimirExame}
-                                sx={{ marginLeft: 2 }}
-                            >
-                                Imprimir Exames
-                            </Button>
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        checked={includeDateExame}
-                                        onChange={(e) => setIncludeDateExame(e.target.checked)}
-                                    />
-                                }
-                                label="Incluir data"
-                            />
-                        </Typography>
-                        <Grid
-                            container
-                            spacing={0}
-                            sx={{
-                                backgroundColor: "#f5f5f5",
-                                padding: 2,
-                                justifyContent: "space-between",
-                                gap: 3,
-                            }}
-                        >
-                            {prontuario.exames?.length > 0 ? (
-                                prontuario.exames.map((exame, index) => (
-                                    <Grid item xs={12} key={index}>
-                                        <Typography variant="body1">
-                                            <b>Exame {index + 1}:</b> {exame.value}
-                                        </Typography>
-                                    </Grid>
-                                ))
-                            ) : (
-                                <Typography variant="body1">
-                                    Nenhum exame cadastrado
-                                </Typography>
-                            )}
-                        </Grid>
-                    </Box>
-                    <Box
-                        mb={2}
-                        sx={{
-                            display: "flex",
-                            justifyContent: "center",
-                            flexDirection: "column",
-                            gap: 2,
-                        }}
-                    >
-                        <Typography variant="h5">Anotações Gerais:</Typography>
-                        <Grid
-                            container
-                            spacing={0}
-                            sx={{
-                                backgroundColor: "#f5f5f5",
-                                padding: 2,
-                                justifyContent: "space-between",
-                                gap: 3,
-                            }}
-                        >
-                            <Grid item xs={12}>
-                                <Typography variant="body1">
-                                    {anotacoes}
-                                </Typography>
-                            </Grid>
-                        </Grid>
-                    </Box>
-                </Paper>
-            </Modal>
+  const handleDocumentPrinted = () => {
+    const currentNotes = formik.values.anotacoes;
+    const printNote = `Documento impresso em ${getBrazilTime()}`;
+    const updatedNotes = currentNotes + '\n' + printNote;
+    formik.setFieldValue('anotacoes', updatedNotes);
 
-            <PrintableDocument
-                ref={printRef}
-                open={printData.open}
-                onClose={handlePrintModalClose}
-                paciente={printData.paciente}
-                conteudo={printData.conteudo}
-                titulo={printData.titulo}
-                medico={printData.medico}
-                includeDate={printData.includeDate}
-                onDocumentPrinted={() => {}}
-                zIndex={1400} // Ajusta o zIndex para garantir que o modal fique em cima
+    // Avança para o próximo documento da lista
+    if (printIndex + 1 < printContentList.length) {
+      setPrintIndex(printIndex + 1);
+    } else {
+      setOpenPrintModal(false);
+      setPrintIndex(0);
+      setPrintContentList([]);
+    }
+  };
+
+  const handleDeleteReceita = (index) => {
+    const newReceitas = [...formik.values.receitas];
+    newReceitas.splice(index, 1);
+    formik.setFieldValue("receitas", newReceitas);
+  };
+
+  const addReceita = () => {
+    const newReceita = { value: "", key: `receita-${receitaCounter}` };
+    formik.setFieldValue("receitas", [...formik.values.receitas, newReceita]);
+    setReceitaCounter(receitaCounter + 1);
+  };
+
+  const handleDeleteExame = (index) => {
+    const newExames = [...formik.values.exames];
+    newExames.splice(index, 1);
+    formik.setFieldValue("exames", newExames);
+  };
+
+  const addExame = () => {
+    const newExame = { value: "", key: `exame-${exameCounter}` };
+    formik.setFieldValue("exames", [...formik.values.exames, newExame]);
+    setExameCounter(exameCounter + 1);
+  };
+
+  const imprimirReceita = () => {
+    const formattedPrescriptions = formik.values.receitas.map((r, index) => `Receita ${index + 1}:\n${r.value}`);
+    setPrintTitle('Receita Médica');
+    setPrintContentList(formattedPrescriptions.map(p => p.replace(/\n/g, '<br>')));
+    setOpenPrintModal(true);
+  };
+
+  const imprimirExames = () => {
+    const formattedExams = formik.values.exames.map((e, index) => `Exame ${index + 1}:\n${e.value}`);
+    setPrintTitle('Pedido de Exame');
+    setPrintContentList(formattedExams.map(e => e.replace(/\n/g, '<br>')));
+    setOpenPrintModal(true);
+  };
+
+  const handlePrintModalClose = () => {
+    setOpenPrintModal(false);
+    setPrintIndex(0);
+    setPrintContentList([]);
+  };
+
+  return (
+    <>
+      <Modal open={open} onClose={onClose}>
+        <Paper
+          sx={{
+            position: "absolute",
+            bgcolor: "background.paper",
+            width: "80%",
+            p: 4,
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            maxHeight: "80vh",
+            overflowY: "auto",
+          }}
+        >
+          <Typography variant="h6" style={{ textAlign: "center" }}>Novo Atendimento</Typography>
+          <Typography variant="subtitle1">Paciente: {paciente.nome}</Typography>
+          <form onSubmit={formik.handleSubmit}>
+            <Typography variant="h6">Receitas</Typography>
+            <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
+              {formik.values.receitas.map((receita, index) => (
+                <TextField
+                  key={receita.key}
+                  value={receita.value}
+                  name={`receitas[${index}].value`}
+                  onChange={formik.handleChange}
+                  onKeyDown={(e) => handleKeyDown(e, 'receitas', index)}
+                  error={formik.touched.receitas && Boolean(formik.errors.receitas)}
+                  helperText={formik.touched.receitas && formik.errors.receitas}
+                  fullWidth
+                  multiline
+                  variant="outlined"
+                  margin="normal"
+                />
+              ))}
+              <IconButton onClick={addReceita}>
+                <AddIcon />
+              </IconButton>
+            </Box>
+
+            <Typography variant="h6">Pedidos de Exames</Typography>
+            <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
+              {formik.values.exames.map((exame, index) => (
+                <Input
+                  key={exame.key}
+                  value={exame.value}
+                  name={`exames[${index}].value`}
+                  onChange={formik.handleChange}
+                  onKeyDown={(e) => handleKeyDown(e, 'exames', index)}
+                  error={formik.touched.exames && Boolean(formik.errors.exames)}
+                  endAdornment={
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="delete field"
+                        onClick={() => handleDeleteExame(index)}
+                        edge="end"
+                      >
+                        <CancelIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  }
+                  fullWidth
+                  multiline
+                />
+              ))}
+              <IconButton onClick={addExame}>
+                <AddIcon />
+              </IconButton>
+            </Box>
+
+            <Typography variant="h6">Anotações da Consulta</Typography>
+            <TextField
+              label="Anotações"
+              value={formik.values.anotacoes}
+              name="anotacoes"
+              helperText={formik.touched.anotacoes && formik.errors.anotacoes}
+              error={formik.touched.anotacoes && Boolean(formik.errors.anotacoes)}
+              onChange={formik.handleChange}
+              fullWidth
+              multiline
+              rows={4}
             />
-        </>
-    );
+
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 2,
+                mt: 2,
+              }}
+            >
+              <Button
+                variant="contained"
+                color="primary"
+                type="submit"
+              >
+                Salvar Prontuário
+              </Button>
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={imprimirReceita}
+              >
+                Imprimir Receita
+              </Button>
+              <Button
+                variant="contained"
+                onClick={imprimirExames}
+                sx={{ ml: 2 }}
+              >
+                Imprimir Exames
+              </Button>
+              <Button
+                variant="contained"
+                sx={{
+                  backgroundColor: "#f44336",
+                  "&:hover": {
+                    backgroundColor: "#d32f2f",
+                  },
+                }}
+                onClick={() => setConfirmClear(true)}
+              >
+                Limpar tudo
+              </Button>
+            </Box>
+          </form>
+        </Paper>
+      </Modal>
+      <Modal open={confirmClear}>
+        <Paper
+          sx={{
+            position: "absolute",
+            bgcolor: "background.paper",
+            width: "40%",
+            p: 4,
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+          }}
+        >
+          <Typography variant="h6" align="center">
+            Tem certeza que deseja limpar tudo?
+          </Typography>
+          <Typography
+            variant="subtitle1"
+            align="center"
+            sx={{
+              color: "#f44336",
+              opacity: 0.8,
+              marginBottom: 4,
+            }}
+          >
+            Essa ação não pode ser desfeita
+          </Typography>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 2,
+              marginTop: 2,
+            }}
+          >
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => {
+                formik.resetForm();
+                setConfirmClear(false);
+              }}
+            >
+              Sim
+            </Button>
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: "#f44336",
+                "&:hover": {
+                    backgroundColor: "#d32f2f",
+                },
+              }}
+              onClick={() => setConfirmClear(false)}
+            >
+              Não
+            </Button>
+          </Box>
+        </Paper>
+      </Modal>
+      {printContentList.length > 0 && (
+        <PrintableDocument
+          open={openPrintModal}
+          onClose={handlePrintModalClose}
+          clinica={{ nome: "Nome da Clínica", endereco: "Endereço da Clínica" }}
+          paciente={paciente}
+          conteudo={printContentList[printIndex]}
+          titulo={printTitle}
+          onDocumentPrinted={handleDocumentPrinted}
+          medico={{ nome: user?.nome, crm: user?.identificacaoProfissional }}
+        />
+      )}
+    </>
+  );
 };
 
-export default ViewProntuarioModal;
+export default MedicalConsultationModal;

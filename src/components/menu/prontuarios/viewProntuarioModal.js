@@ -26,6 +26,7 @@ const ViewProntuarioModal = ({ prontuario, open, onClose }) => {
   const [printData, setPrintData] = useState(null);
   const [printIndex, setPrintIndex] = useState(0);
   const [printContentList, setPrintContentList] = useState([]);
+    // eslint-disable-next-line
   const [openPrintModal, setOpenPrintModal] = useState(false);
   const printRef = useRef();
 

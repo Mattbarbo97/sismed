@@ -201,7 +201,7 @@ const ProntuarioEletronico = () => {
   const filterOptions = (options, state) => {
     return defaultFilterOptions(options, state).slice(0, 6);
   };
-
+// eslint-disable-next-line
   const handlePrint = (titulo, conteudo) => {
     setPrintData({ titulo, conteudo });
   };

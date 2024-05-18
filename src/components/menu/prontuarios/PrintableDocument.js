@@ -1,11 +1,12 @@
-import React, { useEffect, useState, forwardRef } from 'react';
+import React, { useEffect, useState, forwardRef, useRef, useImperativeHandle } from 'react';
 import { Modal, Box, Button, Typography } from '@mui/material';
 import { useReactToPrint } from 'react-to-print';
 import './PrintableDocumentStyles.css';
 import logoClinica from '../../../img/logoprint.jpeg';
 import { formatInTimeZone } from 'date-fns-tz';
-import { parseISO, isValid } from 'date-fns';  // Corrigido para importar do pacote correto
+import { parseISO, isValid } from 'date-fns';
 
+// Define o fuso horário
 const timeZone = 'America/Sao_Paulo';
 
 // Função para obter a data atual formatada
@@ -14,57 +15,66 @@ function getBrazilTime() {
   return formatInTimeZone(now, timeZone, 'dd/MM/yyyy');
 }
 
-// Função para validar e formatar data
-// eslint-disable-next-line
-function getFormattedDate(date) {
-  const parsedDate = parseISO(date);
-  if (isValid(parsedDate)) {
-    return formatInTimeZone(parsedDate, timeZone, 'dd/MM/yyyy');
-  } else {
-    return 'Data inválida';
-  }
-}
+// Componente funcional para o documento imprimível
+const PrintableDocument = forwardRef(({
+  open, // Estado que controla a abertura do modal
+  onClose, // Função para fechar o modal
+  paciente, // Dados do paciente
+  conteudo, // Conteúdo a ser impresso
+  titulo, // Título do documento
+  medico, // Dados do médico
+  includeDate, // Booleano para incluir data de impressão
+  onDocumentPrinted, // Callback após a impressão do documento
+  zIndex = 1300 // Índice Z para o modal
+}, ref) => {
+  const [currentIndex, setCurrentIndex] = useState(0); // Índice do conteúdo atual
+  const printRef = useRef(); // Referência para o elemento imprimível
 
-const PrintableDocument = forwardRef(({ open, onClose, paciente, conteudo, titulo, medico, includeDate, onDocumentPrinted, zIndex = 1300 }, ref) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  // Manipulação da referência para permitir a impressão externa
+  useImperativeHandle(ref, () => ({
+    print: () => {
+      if (printRef.current) {
+        handlePrint(); // Chama a função de impressão
+      } else {
+        console.warn('Referência do elemento de impressão é nula.');
+      }
+    }
+  }));
 
   // Função para lidar com a impressão
   const handlePrint = useReactToPrint({
-    content: () => {
-      if (ref && ref.current) {
-        return ref.current;
-      } else {
-        console.warn('Referência do elemento de impressão é nula.');
-        return null;
-      }
-    },
+    content: () => printRef.current,
     documentTitle: 'Documento Médico',
     onAfterPrint: () => {
       if (currentIndex < conteudo.length - 1) {
-        setCurrentIndex(currentIndex + 1);
+        setCurrentIndex(currentIndex + 1); // Avança para o próximo conteúdo
       } else {
-        setCurrentIndex(0);
-        onDocumentPrinted(titulo);
-        onClose(); // Fecha o modal após a impressão
+        setCurrentIndex(0); // Reseta o índice do conteúdo
+        onDocumentPrinted(titulo); // Chama o callback após a impressão
+        onClose(); // Fecha o modal
       }
     },
   });
 
   // Efeito para acionar a impressão quando o modal é aberto
   useEffect(() => {
-    if (open && conteudo && conteudo.length > 0 && ref && ref.current) {
+    if (open && conteudo && conteudo.length > 0 && printRef.current) {
       handlePrint();
-    }// eslint-disable-next-line
-  }, [open, currentIndex]);
+    }
+  }, [open, currentIndex, printRef, conteudo, handlePrint]);
 
+  // Retorna null se o modal não estiver aberto
   if (!open) {
     return null;
   }
 
+  // Estrutura do documento a ser impresso
   return (
     <Modal open={open} onClose={onClose} className="modal-background" sx={{ zIndex }}>
       <Box className="modal-wrapper">
-        <Box className="page" ref={ref}>
+        {/* Elemento imprimível */}
+        <Box className="page" ref={printRef}>
+          {/* Cabeçalho do documento */}
           <Box className="header">
             <img className="logo" src={logoClinica} alt="Logo da Clínica" />
             <Box className="title">
@@ -72,20 +82,21 @@ const PrintableDocument = forwardRef(({ open, onClose, paciente, conteudo, titul
             </Box>
           </Box>
 
+          {/* Conteúdo do documento */}
           <Box className="content">
-            {/* Linha sutil acima do título */}
+            {/* Linha sutil */}
             <Box className="subtle-line"></Box>
-            
-            {/* Centraliza o título com a classe .main-title */}
             <Box sx={{ textAlign: 'center', marginBottom: 2 }}>
               <Typography className="main-title">{titulo}</Typography>
             </Box>
 
+            {/* Informações do paciente */}
             <Box className="section-content">
               <Box className="section-title">Paciente:</Box>
               <Box>{paciente?.nome}</Box>
             </Box>
 
+            {/* Cabeçalho da prescrição */}
             <Box className="prescription-header">
               <Typography className="prescription-title">
                 {titulo === 'Solicitação de exame' ? 'Pedido de Exame' : 'Prescrição'}
@@ -96,22 +107,22 @@ const PrintableDocument = forwardRef(({ open, onClose, paciente, conteudo, titul
             </Box>
             <hr />
 
+            {/* Conteúdo da prescrição */}
             <Box className="section-content">
               <Box dangerouslySetInnerHTML={{ __html: conteudo[currentIndex] }} />
             </Box>
           </Box>
 
-          <Box className="spacer"></Box> {/* Adiciona o espaçamento extra */}
+          {/* Espaçamento */}
+          <Box className="spacer"></Box>
 
-          <Box className="doctor-info">
-            <Box component="span">{`Dr(a). ${medico?.nome} - CRM: ${medico?.crm}`}</Box>
-          </Box>
-
+          {/* Assinatura do médico e informações */}
           <Box className="doctor-signature">
             <Box component="span" className="signature-line">____________________________</Box>
-            <Box component="span" className="signature-label">Assinatura do Médico</Box>
+            <Box component="span" className="doctor-info">{`Dr(a). ${medico?.nome} - CRM: ${medico?.crm}`}</Box>
           </Box>
 
+          {/* Rodapé do documento */}
           <Box className="footer">
             <hr />
             <Box component="span" sx={{ display: 'block', textAlign: 'center' }}>
@@ -122,6 +133,7 @@ const PrintableDocument = forwardRef(({ open, onClose, paciente, conteudo, titul
           </Box>
         </Box>
 
+        {/* Botões de impressão e cancelamento */}
         <Box className="button-container-print">
           <Button className="custom-button print-button" onClick={handlePrint}>
             IMPRIMIR DOCUMENTO

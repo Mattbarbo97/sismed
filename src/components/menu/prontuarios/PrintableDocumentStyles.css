@@ -25,7 +25,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  margin-bottom: 2cm;
+  margin-bottom: 1cm; /* Reduzido para aproximar do conteúdo */
 }
 
 /* Estilo do logo */
@@ -45,16 +45,18 @@
 
 /* Estilo principal dos títulos (centraliza e ajusta a fonte) */
 .main-title {
-  text-align: center;  /* Centraliza o texto */
+  text-align: center;
   font-weight: bold;
   color: black;
   width: 100%;
-  font-size: 22px;  /* Aumenta o tamanho da fonte */
+  font-size: 22px;
+  text-decoration: underline; /* Adiciona sublinhado */
 }
 
 /* Estilo da linha sutil */
 .subtle-line {
-  border-top: 1px solid #ccc;  /* Linha sutil */
+  border-top: 2px solid #a26e35; /* Cor alterada para #a26e35 e espessura ajustada */
+  margin-top: -10px; /* Aproxima a linha do cabeçalho */
   margin-bottom: 10px;
 }
 
@@ -100,24 +102,13 @@
   text-align: center;
 }
 
-/* Estilo das informações do médico */
-.doctor-info {
-  margin-top: 30px;
-  font-weight: bold;
-  text-align: center;
-  position: absolute;
-  bottom: 3cm; /* 3cm acima do rodapé */
-  left: 0;
-  right: 0;
-}
-
-/* Estilo da assinatura do médico */
+/* Estilo da assinatura e informações do médico */
 .doctor-signature {
   margin-top: 30px;
   font-weight: bold;
   text-align: center;
   position: absolute;
-  bottom: 4cm; /* 4cm acima do rodapé */
+  bottom: 4.5cm; /* Subir o campo da assinatura */
   left: 0;
   right: 0;
 }
@@ -127,9 +118,10 @@
   margin-bottom: 5px;
 }
 
-.signature-label {
+/* Estilo das informações do médico */
+.doctor-info {
   font-size: 14px;
-  color: #555;
+  color: #000000;
 }
 
 /* Estilo do conteúdo do modal */
@@ -157,8 +149,8 @@
 
 /* Estilo dos botões customizados */
 .custom-button {
-  background-color: #a26e35 !important; /* Cor de fundo dos botões */
-  color: #ffffff !important; /* Cor do texto dos botões */
+  background-color: #a26e35 !important;
+  color: #ffffff !important;
   font-weight: bold !important;
   padding: 10px 20px !important;
   margin: 10px 0 !important;
@@ -170,7 +162,7 @@
 
 /* Estilo dos botões ao passar o mouse */
 .custom-button:hover {
-  background-color: #895825 !important; /* Cor de fundo dos botões ao passar o mouse */
+  background-color: #895825 !important;
 }
 
 /* Estilos específicos para impressão */

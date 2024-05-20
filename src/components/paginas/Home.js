@@ -30,7 +30,7 @@ const Home = () => {
         <MenuPrincipal />
         <div className="home-content">
           <div className="welcome-section">
-            <h1 className="title">Bem-vindo à UNNA</h1>
+
 
             <div className="button-container">
               <div className="left-buttons">

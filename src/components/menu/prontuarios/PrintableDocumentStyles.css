@@ -25,13 +25,13 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  margin-bottom: 1cm; /* Reduzido para aproximar do conteúdo */
+  margin-bottom: 0,5cm; /* Reduzido para aproximar do conteúdo */
 }
 
 /* Estilo do logo */
 .logo {
-  width: 4cm;
-  height: 4cm;
+  width: 2cm;
+  height: 2cm;
 }
 
 /* Estilo do título da clínica */
@@ -56,7 +56,7 @@
 /* Estilo da linha sutil */
 .subtle-line {
   border-top: 2px solid #a26e35; /* Cor alterada para #a26e35 e espessura ajustada */
-  margin-top: -10px; /* Aproxima a linha do cabeçalho */
+  margin-top: 0,5cm; /* Aproxima a linha do cabeçalho */
   margin-bottom: 10px;
 }
 

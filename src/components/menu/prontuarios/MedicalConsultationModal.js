@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  // eslint-disable-next-line
   Box, Button, IconButton, Modal, Paper, Typography, TextField, InputAdornment, Checkbox, FormControlLabel
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -14,7 +15,7 @@ const timeZone = 'America/Sao_Paulo';
 
 function getBrazilTime() {
   const now = new Date();
-  return formatInTimeZone(now, timeZone, 'yyyy-MM-dd HH:mm:ssXXX');
+  return formatInTimeZone(now, timeZone, 'dd/MM/yyyy');
 }
 
 const validationSchema = Yup.object().shape({
@@ -40,9 +41,6 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
   const [printContentList, setPrintContentList] = useState([]);
   const [printIndex, setPrintIndex] = useState(0);
   const [printTitle, setPrintTitle] = useState('');
-  const [disableClear, setDisableClear] = useState(false);
-  const [includePrintDateReceita, setIncludePrintDateReceita] = useState(false);
-  const [includePrintDateExame, setIncludePrintDateExame] = useState(false);
 
   const formik = useFormik({
     initialValues: {
@@ -81,12 +79,7 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
   };
 
   const handleDocumentPrinted = (type) => {
-    let printNote = `${type.charAt(0).toUpperCase() + type.slice(1)} impresso`;
-    if (type === 'receita' && includePrintDateReceita) {
-      printNote += ` em ${getBrazilTime()}`;
-    } else if (type === 'exame' && includePrintDateExame) {
-      printNote += ` em ${getBrazilTime()}`;
-    }
+    const printNote = `${type.charAt(0).toUpperCase() + type.slice(1)} impresso em ${getBrazilTime()}`;
     const currentNotes = formik.values.anotacoes;
     const updatedNotes = currentNotes + '\n' + printNote;
     formik.setFieldValue('anotacoes', updatedNotes);
@@ -98,7 +91,6 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
       setPrintIndex(0);
       setPrintContentList([]);
     }
-    setDisableClear(true);
   };
 
   const handleDeleteReceita = (index) => {
@@ -205,10 +197,6 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
                 >
                   Imprimir Receita
                 </Button>
-                <FormControlLabel
-                  control={<Checkbox checked={includePrintDateReceita} onChange={() => setIncludePrintDateReceita(!includePrintDateReceita)} />}
-                  label="Incluir data da impressão"
-                />
               </Box>
             </Box>
 
@@ -253,10 +241,6 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
                 >
                   Imprimir Exames
                 </Button>
-                <FormControlLabel
-                  control={<Checkbox checked={includePrintDateExame} onChange={() => setIncludePrintDateExame(!includePrintDateExame)} />}
-                  label="Incluir data da impressão"
-                />
               </Box>
             </Box>
 
@@ -294,12 +278,11 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
               <Button
                 variant="contained"
                 sx={{
-                  backgroundColor: disableClear ? "#c0c0c0" : "#f44336",
+                  backgroundColor: "#f44336",
                   "&:hover": {
-                    backgroundColor: disableClear ? "#c0c0c0" : "#d32f2f",
+                    backgroundColor: "#d32f2f",
                   },
                 }}
-                disabled={disableClear}
                 onClick={() => setConfirmClear(true)}
               >
                 Limpar tudo
@@ -375,7 +358,7 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
           conteudo={printContentList}
           titulo={printTitle}
           medico={{ nome: user?.nome, crm: user?.identificacaoProfissional }}
-          includeDate={printTitle === 'Receita Médica' ? includePrintDateReceita : includePrintDateExame}
+          includeDate={true}  // Definindo como true para sempre incluir a data
           onDocumentPrinted={() => handleDocumentPrinted(printTitle.toLowerCase())}
         />
       )}

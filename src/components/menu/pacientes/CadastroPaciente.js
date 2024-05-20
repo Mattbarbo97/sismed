@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Container, TextField, Button, Box, Typography, MenuItem, FormControl, InputLabel, Select, Checkbox, FormControlLabel } from '@mui/material';
-import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import axios from 'axios';
 import MenuPrincipal from '../MenuPrincipal'; // Ajuste o caminho conforme necessário
 import useStyles from './CadastroPacienteStyles';
@@ -24,6 +24,7 @@ const CadastroPaciente = ({ onSalvar }) => {
   const [temProntuarioAntigo, setTemProntuarioAntigo] = useState(false);
   const [prontuarioAntigo, setProntuarioAntigo] = useState('');
   const [localizacaoProntuarioAntigo, setLocalizacaoProntuarioAntigo] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const styles = useStyles();
 
@@ -59,12 +60,44 @@ const CadastroPaciente = ({ onSalvar }) => {
     setCpf(cpfFormatado);
   };
 
+  const buscarPacientePorCPF = async (cpf) => {
+    const cpfLimpo = cpf.replace(/\D/g, ''); // Remove a formatação do CPF
+    const q = query(collection(firestore, 'pacientes_cadastrados'), where('cpf', '==', cpfLimpo));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.size > 0;
+  };
+
+  const buscarUltimoNumeroProntuario = async () => {
+    const q = query(collection(firestore, 'pacientes_cadastrados'), orderBy('numeroProntuario', 'desc'), limit(1));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      const ultimoPaciente = querySnapshot.docs[0].data();
+      return parseInt(ultimoPaciente.numeroProntuario, 10) + 1;
+    } else {
+      return 1;
+    }
+  };
+
   const cadastrarPaciente = async () => {
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+
     if (nome && cpf && rg && sexoBiologico && genero && dataNascimento && endereco && bairro && cidade && estado && cep && numeroResidencia && email && telefone && contatoEmergencia) {
       try {
+        const pacienteJaExiste = await buscarPacientePorCPF(cpf);
+        if (pacienteJaExiste) {
+          alert('Erro: Paciente com este CPF já está cadastrado.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        const numeroProntuario = await buscarUltimoNumeroProntuario();
+        const prontuarioFormatado = String(numeroProntuario).padStart(7, '0');
+
         const pacienteData = {
           nome,
-          cpf,
+          cpf: cpf.replace(/\D/g, ''), // Remove a formatação do CPF ao salvar
           rg,
           sexoBiologico,
           genero,
@@ -78,6 +111,7 @@ const CadastroPaciente = ({ onSalvar }) => {
           email,
           telefone,
           contatoEmergencia,
+          numeroProntuario: prontuarioFormatado
         };
 
         if (temProntuarioAntigo) {
@@ -89,12 +123,35 @@ const CadastroPaciente = ({ onSalvar }) => {
         const novoPaciente = { id: docRef.id, ...pacienteData };
         onSalvar(novoPaciente);  // Chama a função de callback passada do componente pai
         alert('Sucesso: Paciente cadastrado com sucesso!');
+        
+        // Limpa o formulário após o cadastro
+        setNome('');
+        setCpf('');
+        setRg('');
+        setSexoBiologico('');
+        setGenero('');
+        setDataNascimento('');
+        setCep('');
+        setEndereco('');
+        setBairro('');
+        setCidade('');
+        setEstado('');
+        setNumeroResidencia('');
+        setEmail('');
+        setTelefone('');
+        setContatoEmergencia('');
+        setTemProntuarioAntigo(false);
+        setProntuarioAntigo('');
+        setLocalizacaoProntuarioAntigo('');
       } catch (error) {
         console.error('Erro ao salvar no Firestore:', error);
         alert('Erro: Ocorreu um erro ao cadastrar o paciente.');
+      } finally {
+        setIsSubmitting(false);
       }
     } else {
       alert('Erro: Por favor, preencha todos os campos.');
+      setIsSubmitting(false);
     }
   };
 
@@ -165,7 +222,7 @@ const CadastroPaciente = ({ onSalvar }) => {
           </>
         )}
 
-        <Button fullWidth variant="contained" color="primary" onClick={cadastrarPaciente} sx={styles.submitButton}>Cadastrar</Button>
+        <Button fullWidth variant="contained" color="primary" onClick={cadastrarPaciente} sx={styles.submitButton} disabled={isSubmitting}>Cadastrar</Button>
       </Box>
     </Container>
   );

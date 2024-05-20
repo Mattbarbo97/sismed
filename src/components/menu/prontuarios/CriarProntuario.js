@@ -23,6 +23,7 @@ import {
   doc,
   getDocs,
   getFirestore,
+  // eslint-disable-next-line
   runTransaction,
   setDoc
 } from "firebase/firestore";
@@ -60,32 +61,6 @@ const takeFirst80Char = (text) => {
   return text.length > 80 ? text.substring(0, 80) + "..." : text;
 };
 
-const getNextProntuarioId = async () => {
-  const db = getFirestore();
-  const counterDocRef = doc(db, "counters", "prontuarioId");
-
-  try {
-    const newId = await runTransaction(db, async (transaction) => {
-      const counterDoc = await transaction.get(counterDocRef);
-      if (!counterDoc.exists()) {
-        transaction.set(counterDocRef, { currentId: 1 });
-        return 1;
-      }
-
-      const currentId = counterDoc.data().currentId;
-      const nextId = currentId + 1;
-      transaction.update(counterDocRef, { currentId: nextId });
-
-      return nextId;
-    });
-
-    return newId.toString().padStart(6, '0');
-  } catch (e) {
-    console.error("Transaction failed: ", e);
-    throw e;
-  }
-};
-
 const ProntuarioEletronico = () => {
   const [pacienteSelecionado, setPacienteSelecionado] = useState({
     id: "",
@@ -98,7 +73,8 @@ const ProntuarioEletronico = () => {
     numeroResidencia: "",
     bairro: "",
     cidade: "",
-    estado: ""
+    estado: "",
+    numeroProntuario: "" // Adiciona o campo número de prontuário
   });
   const [loading, setLoading] = useState(false);
   const [historico, setHistorico] = useState([]);
@@ -141,9 +117,7 @@ const ProntuarioEletronico = () => {
     setLoading(true);
     try {
       const db = getFirestore();
-      const novoId = await getNextProntuarioId();
       const dados = {
-        id: novoId,
         texto: data.anotacoes,
         exames: data.exames,
         receitas: data.receitas,
@@ -153,7 +127,7 @@ const ProntuarioEletronico = () => {
         medico: user
       };
       const historicoCollection = collection(db, "prontuarios");
-      await setDoc(doc(historicoCollection, novoId), dados);
+      await setDoc(doc(historicoCollection), dados);
       setModalConsultaAberto(false);
       await buscarAnotacoes();
     } catch (error) {
@@ -201,7 +175,7 @@ const ProntuarioEletronico = () => {
   const filterOptions = (options, state) => {
     return defaultFilterOptions(options, state).slice(0, 6);
   };
-// eslint-disable-next-line
+  // eslint-disable-next-line
   const handlePrint = (titulo, conteudo) => {
     setPrintData({ titulo, conteudo });
   };
@@ -240,11 +214,13 @@ const ProntuarioEletronico = () => {
                 numeroResidencia: "",
                 bairro: "",
                 cidade: "",
-                estado: ""
+                estado: "",
+                numeroProntuario: "" // Reseta o campo número de prontuário
               });
               setHistorico([]);
               return;
             }
+            console.log("Número de Prontuário Selecionado:", value.numeroProntuario);
             setPacienteSelecionado(value);
           }}
           renderInput={(params) => (
@@ -350,6 +326,20 @@ const ProntuarioEletronico = () => {
               {pacienteSelecionado.estado}
             </Typography>
           </Grid>
+          <Grid item xs={12} sm={6}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "row",
+                gap: 2
+              }}
+            >
+              <Typography variant="h6">Número de Prontuário:</Typography>
+              <Typography variant="h6">
+                {pacienteSelecionado.numeroProntuario}
+              </Typography>
+            </Box>
+          </Grid>
         </Grid>
       </Paper>
       <TableContainer component={Paper} sx={{ mt: 2 }}>
@@ -422,7 +412,7 @@ const ProntuarioEletronico = () => {
           conteudo={printData.conteudo}
           titulo={printData.titulo}
           medico={user}
-          includeDate={true}
+          // includeDate={true} // Comentando esta linha
           onDocumentPrinted={(titulo) => console.log(`${titulo} impresso`)}
         />
       )}

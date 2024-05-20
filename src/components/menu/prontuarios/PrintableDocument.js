@@ -4,7 +4,6 @@ import { useReactToPrint } from 'react-to-print';
 import './PrintableDocumentStyles.css';
 import logoClinica from '../../../img/logoprint.jpeg';
 import { formatInTimeZone } from 'date-fns-tz';
-// eslint-disable-next-line
 import { parseISO, isValid } from 'date-fns';
 
 // Define o fuso horário

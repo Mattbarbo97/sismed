@@ -26,7 +26,7 @@ const ViewProntuarioModal = ({ prontuario, open, onClose }) => {
   const [printData, setPrintData] = useState(null);
   const [printIndex, setPrintIndex] = useState(0);
   const [printContentList, setPrintContentList] = useState([]);
-    // eslint-disable-next-line
+  // eslint-disable-next-line
   const [openPrintModal, setOpenPrintModal] = useState(false);
   const printRef = useRef();
 
@@ -156,7 +156,7 @@ const ViewProntuarioModal = ({ prontuario, open, onClose }) => {
                 fontSize: "1.5rem",
               }}
             >
-              Prontuário {prontuario.id}
+              Prontuário - {prontuario.paciente?.numeroProntuario}
             </Typography>
           </Box>
           <Box
@@ -210,6 +210,12 @@ const ViewProntuarioModal = ({ prontuario, open, onClose }) => {
                 <Typography variant="body1">
                   <b>Telefone:</b>{" "}
                   {formatPhone(prontuario.paciente?.telefone)}
+                </Typography>
+              </Grid>
+              <Grid item xs="auto">
+                <Typography variant="body1">
+                  <b>Número do Prontuário:</b>{" "}
+                  {prontuario.paciente?.numeroProntuario}
                 </Typography>
               </Grid>
             </Grid>
@@ -379,7 +385,7 @@ const ViewProntuarioModal = ({ prontuario, open, onClose }) => {
               gap: 2,
             }}
           >
-            <Typography variant="h5">Anotações Gerais:</Typography>
+            <Typography variant="h5">Evolução:</Typography>
             <Grid
               container
               spacing={0}

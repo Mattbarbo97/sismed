@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../../context/UserContext";
 import { auth, firestore } from "../../firebase";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import logoini from "../../img/logoini.png";
 
 const Alert = ({ message, type, onClose }) => {
@@ -31,6 +32,7 @@ const LoginForm = () => {
     const { setUser, user } = useUser();
     const [login, setLogin] = useState("");
     const [senha, setSenha] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [alert, setAlert] = useState({ message: "", type: "" });
 
     const getUserFromDb = async (uid) => {
@@ -104,6 +106,10 @@ const LoginForm = () => {
         console.log("Recuperação de senha solicitada");
     };
 
+    const toggleShowPassword = () => {
+        setShowPassword(!showPassword);
+    };
+
     return (
         <form onSubmit={handleLogin} style={styles.container}>
             <img src={logoini} alt="Logo" style={styles.logo} />
@@ -123,13 +129,18 @@ const LoginForm = () => {
                     value={login}
                     onChange={(e) => setLogin(e.target.value)}
                 />
-                <input
-                    style={styles.input}
-                    type="password"
-                    placeholder="Senha"
-                    value={senha}
-                    onChange={(e) => setSenha(e.target.value)}
-                />
+                <div style={styles.passwordContainer}>
+                    <input
+                        style={styles.passwordInput}
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Senha"
+                        value={senha}
+                        onChange={(e) => setSenha(e.target.value)}
+                    />
+                    <div onClick={toggleShowPassword} style={styles.eyeIcon}>
+                        {showPassword ? <FaEyeSlash /> : <FaEye />}
+                    </div>
+                </div>
                 <button type="submit" style={styles.button}>
                     Login
                 </button>
@@ -193,6 +204,30 @@ const styles = {
         border: "1px solid #ccc",
         borderRadius: "4px",
         paddingLeft: "8px",
+        boxSizing: "border-box",
+    },
+    passwordContainer: {
+        width: "100%",
+        position: "relative",
+        marginBottom: "16px",
+    },
+    passwordInput: {
+        width: "100%",
+        height: "40px",
+        border: "1px solid #ccc",
+        borderRadius: "4px",
+        paddingLeft: "8px",
+        paddingRight: "40px",
+        boxSizing: "border-box",
+    },
+    eyeIcon: {
+        position: "absolute",
+        top: "50%",
+        right: "10px",
+        transform: "translateY(-50%)",
+        cursor: "pointer",
+        fontSize: "20px",
+        color: "#888",
     },
     button: {
         width: "100%",

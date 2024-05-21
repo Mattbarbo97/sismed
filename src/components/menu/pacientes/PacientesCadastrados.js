@@ -90,9 +90,9 @@ const PacientesCadastrados = () => {
         const duplicatas = [];
 
         for (const paciente of pacientesList) {
-            if (cpfSet.has(paciente.cpf)) {
+            if (paciente.cpf && cpfSet.has(paciente.cpf)) {
                 duplicatas.push(paciente);
-            } else {
+            } else if (paciente.cpf) {
                 cpfSet.add(paciente.cpf);
             }
         }
@@ -255,16 +255,16 @@ const PacientesCadastrados = () => {
                                     .filter((paciente) => {
                                         const searchLower = termoPesquisa.toLowerCase();
                                         return (
-                                            paciente.nome.toLowerCase().includes(searchLower) ||
-                                            paciente.email.toLowerCase().includes(searchLower) ||
-                                            paciente.cpf.includes(searchLower)
+                                            (paciente.nome && paciente.nome.toLowerCase().includes(searchLower)) ||
+                                            (paciente.email && paciente.email.toLowerCase().includes(searchLower)) ||
+                                            (paciente.cpf && paciente.cpf.includes(searchLower))
                                         );
                                     })
                                     .map((paciente, index) => (
                                         <TableRow key={index}>
                                             <TableCell>{paciente.nome}</TableCell>
                                             <TableCell>{paciente.email}</TableCell>
-                                            <TableCell>{paciente.cpf}</TableCell>
+                                            <TableCell>{paciente.cpf || 'N/A'}</TableCell>
                                             <TableCell>{paciente.genero}</TableCell>
                                             <TableCell>{paciente.telefone}</TableCell>
                                             <TableCell>
@@ -300,9 +300,9 @@ const PacientesCadastrados = () => {
                                 <>
                                     <Typography>Nome: {pacienteSelecionado.nome}</Typography>
                                     <Typography>E-mail: {pacienteSelecionado.email}</Typography>
-                                    <Typography>CPF: {pacienteSelecionado.cpf}</Typography>
-                                    <Typography>RG: {pacienteSelecionado.rg}</Typography>
-                                    <Typography>Sexo Biológico: {pacienteSelecionado.sexoBiologico}</Typography>
+                                    <Typography>CPF: {pacienteSelecionado.cpf || 'N/A'}</Typography>
+                                    <Typography>RG: {pacienteSelecionado.rg || 'N/A'}</Typography>
+                                    <Typography>Sexo Biológico: {pacienteSelecionado.sexoBiologico || 'N/A'}</Typography>
                                     <Typography>Gênero: {pacienteSelecionado.genero}</Typography>
                                     <Typography>Data de Nascimento: {pacienteSelecionado.dataNascimento}</Typography>
                                     <Typography>CEP: {pacienteSelecionado.cep}</Typography>
@@ -362,7 +362,7 @@ const PacientesCadastrados = () => {
                                         margin="dense"
                                         label="CPF"
                                         type="text"
-                                        value={pacienteSelecionado.cpf}
+                                        value={pacienteSelecionado.cpf || ''}
                                         InputProps={{
                                             readOnly: true,
                                         }}
@@ -373,7 +373,7 @@ const PacientesCadastrados = () => {
                                         margin="dense"
                                         label="RG"
                                         type="text"
-                                        value={pacienteSelecionado.rg}
+                                        value={pacienteSelecionado.rg || ''}
                                         InputProps={{
                                             readOnly: true,
                                         }}
@@ -384,7 +384,7 @@ const PacientesCadastrados = () => {
                                         margin="dense"
                                         label="Sexo Biológico"
                                         type="text"
-                                        value={pacienteSelecionado.sexoBiologico}
+                                        value={pacienteSelecionado.sexoBiologico || ''}
                                         InputProps={{
                                             readOnly: true,
                                         }}
@@ -584,3 +584,4 @@ const PacientesCadastrados = () => {
 };
 
 export default PacientesCadastrados;
+    

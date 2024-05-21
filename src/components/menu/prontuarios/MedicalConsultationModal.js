@@ -29,7 +29,7 @@ const validationSchema = Yup.object().shape({
       value: Yup.string().required("O campo não pode estar vazio, se não for preencher, remova o campo."),
     })
   ),
-  anotacoes: Yup.string().required("As anotações da consulta são obrigatórias."),
+  anotacoes: Yup.string().required("As Evolução são obrigatórias."),
 });
 
 const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
@@ -245,7 +245,7 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
             </Box>
 
             <Box className="subtle-line"></Box>
-            <Typography variant="h6">Anotações da Consulta</Typography>
+            <Typography variant="h6">Evolução</Typography>
             <TextField
               label="Anotações"
               value={formik.values.anotacoes}

@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { Container, TextField, Button, Box, Typography, MenuItem, FormControl, InputLabel, Select, Checkbox, FormControlLabel } from '@mui/material';
-import { getFirestore, collection, addDoc, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { Container, TextField, Button, Box, Typography, MenuItem, FormControl, InputLabel, Select, Checkbox, FormControlLabel, Alert } from '@mui/material';
+import { getFirestore, collection, query, where, getDocs, orderBy, limit, doc, setDoc } from 'firebase/firestore';
 import axios from 'axios';
+import { createUserWithEmailAndPassword, getAuth } from 'firebase/auth';
 import MenuPrincipal from '../MenuPrincipal'; // Ajuste o caminho conforme necessário
 import useStyles from './CadastroPacienteStyles';
 
-const CadastroPaciente = ({ onSalvar }) => {
+const CadastroPaciente = ({ onSalvar, fecharModal }) => {
   const [nome, setNome] = useState('');
   const [cpf, setCpf] = useState('');
+  const [cpfLimpo, setCpfLimpo] = useState('');
   const [rg, setRg] = useState('');
   const [sexoBiologico, setSexoBiologico] = useState('');
   const [genero, setGenero] = useState('');
@@ -20,14 +22,15 @@ const CadastroPaciente = ({ onSalvar }) => {
   const [numeroResidencia, setNumeroResidencia] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
-  const [contatoEmergencia, setContatoEmergencia] = useState('');
   const [temProntuarioAntigo, setTemProntuarioAntigo] = useState(false);
   const [prontuarioAntigo, setProntuarioAntigo] = useState('');
   const [localizacaoProntuarioAntigo, setLocalizacaoProntuarioAntigo] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mensagemAlerta, setMensagemAlerta] = useState({ tipo: '', texto: '' });
+  const [mostrarAlerta, setMostrarAlerta] = useState(false);
 
   const styles = useStyles();
-
+  const auth = getAuth();
   const firestore = getFirestore();
 
   const buscarEnderecoPorCep = async (cep) => {
@@ -43,7 +46,7 @@ const CadastroPaciente = ({ onSalvar }) => {
           alert('Erro: CEP não encontrado.');
         }
       } catch (error) {
-        console.error(error);
+        console.error('Erro ao buscar o CEP:', error);
         alert('Erro ao buscar o CEP.');
       }
     }
@@ -57,14 +60,20 @@ const CadastroPaciente = ({ onSalvar }) => {
 
   const handleChangeCPF = (e) => {
     const cpfFormatado = formatarCPF(e.target.value);
+    const cpfLimpo = e.target.value.replace(/\D/g, '');
     setCpf(cpfFormatado);
+    setCpfLimpo(cpfLimpo);
+  };
+
+  const exibirMensagemAlerta = (tipo, texto) => {
+    setMensagemAlerta({ tipo, texto });
+    setMostrarAlerta(true);
   };
 
   const buscarPacientePorCPF = async (cpf) => {
-    const cpfLimpo = cpf.replace(/\D/g, ''); // Remove a formatação do CPF
-    const q = query(collection(firestore, 'pacientes_cadastrados'), where('cpf', '==', cpfLimpo));
+    const q = query(collection(firestore, 'pacientes_cadastrados'), where('cpf', '==', cpf));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.size > 0;
+    return !querySnapshot.empty;
   };
 
   const buscarUltimoNumeroProntuario = async () => {
@@ -81,76 +90,85 @@ const CadastroPaciente = ({ onSalvar }) => {
   const cadastrarPaciente = async () => {
     if (isSubmitting) return;
 
+    if (!nome || !cpf || !rg || !endereco || !cep || !numeroResidencia || !email || !telefone || !dataNascimento) {
+      exibirMensagemAlerta("warning", "Por favor, preencha todos os campos.");
+      return;
+    }
+
     setIsSubmitting(true);
 
-    if (nome && cpf && rg && sexoBiologico && genero && dataNascimento && endereco && bairro && cidade && estado && cep && numeroResidencia && email && telefone && contatoEmergencia) {
-      try {
-        const pacienteJaExiste = await buscarPacientePorCPF(cpf);
-        if (pacienteJaExiste) {
-          alert('Erro: Paciente com este CPF já está cadastrado.');
-          setIsSubmitting(false);
-          return;
-        }
-
-        const numeroProntuario = await buscarUltimoNumeroProntuario();
-        const prontuarioFormatado = String(numeroProntuario).padStart(7, '0');
-
-        const pacienteData = {
-          nome,
-          cpf: cpf.replace(/\D/g, ''), // Remove a formatação do CPF ao salvar
-          rg,
-          sexoBiologico,
-          genero,
-          dataNascimento,
-          endereco,
-          bairro,
-          cidade,
-          estado,
-          cep,
-          numeroResidencia,
-          email,
-          telefone,
-          contatoEmergencia,
-          numeroProntuario: prontuarioFormatado
-        };
-
-        if (temProntuarioAntigo) {
-          pacienteData.prontuarioAntigo = prontuarioAntigo;
-          pacienteData.localizacaoProntuarioAntigo = localizacaoProntuarioAntigo;
-        }
-
-        const docRef = await addDoc(collection(firestore, 'pacientes_cadastrados'), pacienteData);
-        const novoPaciente = { id: docRef.id, ...pacienteData };
-        onSalvar(novoPaciente);  // Chama a função de callback passada do componente pai
-        alert('Sucesso: Paciente cadastrado com sucesso!');
-        
-        // Limpa o formulário após o cadastro
-        setNome('');
-        setCpf('');
-        setRg('');
-        setSexoBiologico('');
-        setGenero('');
-        setDataNascimento('');
-        setCep('');
-        setEndereco('');
-        setBairro('');
-        setCidade('');
-        setEstado('');
-        setNumeroResidencia('');
-        setEmail('');
-        setTelefone('');
-        setContatoEmergencia('');
-        setTemProntuarioAntigo(false);
-        setProntuarioAntigo('');
-        setLocalizacaoProntuarioAntigo('');
-      } catch (error) {
-        console.error('Erro ao salvar no Firestore:', error);
-        alert('Erro: Ocorreu um erro ao cadastrar o paciente.');
-      } finally {
+    try {
+      const pacienteJaExiste = await buscarPacientePorCPF(cpfLimpo);
+      if (pacienteJaExiste) {
+        exibirMensagemAlerta("error", "Erro: Paciente com este CPF já está cadastrado.");
         setIsSubmitting(false);
+        return;
       }
-    } else {
-      alert('Erro: Por favor, preencha todos os campos.');
+
+      const numeroProntuario = await buscarUltimoNumeroProntuario();
+      const prontuarioFormatado = String(numeroProntuario).padStart(7, '0');
+
+      const usuario = await createUserWithEmailAndPassword(auth, email, "senhaPadrao");
+      const docRef = doc(firestore, "pacientes_cadastrados", usuario.user.uid);
+
+      const pacienteData = {
+        nome,
+        cpf: cpfLimpo,
+        rg,
+        sexoBiologico,
+        genero,
+        dataNascimento,
+        endereco,
+        bairro,
+        cidade,
+        estado,
+        cep,
+        numeroResidencia,
+        email,
+        telefone,
+        numeroProntuario: prontuarioFormatado
+      };
+
+      if (temProntuarioAntigo) {
+        pacienteData.prontuarioAntigo = prontuarioAntigo;
+        pacienteData.localizacaoProntuarioAntigo = localizacaoProntuarioAntigo;
+      }
+
+      await setDoc(docRef, pacienteData);
+
+      exibirMensagemAlerta("success", "Paciente cadastrado com sucesso!");
+      onSalvar(pacienteData);
+
+      if (fecharModal) {
+        fecharModal();
+      }
+
+      // Limpa o formulário após o cadastro
+      setNome('');
+      setCpf('');
+      setCpfLimpo('');
+      setRg('');
+      setSexoBiologico('');
+      setGenero('');
+      setDataNascimento('');
+      setCep('');
+      setEndereco('');
+      setBairro('');
+      setCidade('');
+      setEstado('');
+      setNumeroResidencia('');
+      setEmail('');
+      setTelefone('');
+      setTemProntuarioAntigo(false);
+      setProntuarioAntigo('');
+      setLocalizacaoProntuarioAntigo('');
+
+      // Atualiza a página após o cadastro
+      window.location.reload();
+    } catch (error) {
+      console.error('Erro ao salvar no Firestore:', error);
+      exibirMensagemAlerta("error", "Erro: Ocorreu um erro ao cadastrar o paciente.");
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -158,6 +176,11 @@ const CadastroPaciente = ({ onSalvar }) => {
   return (
     <Container maxWidth="sm">
       <MenuPrincipal />
+      {mostrarAlerta && (
+        <Alert severity={mensagemAlerta.tipo} sx={{ marginBottom: 2 }}>
+          {mensagemAlerta.texto}
+        </Alert>
+      )}
       <Box component="form" sx={styles.formContainer} noValidate autoComplete="off">
         <Typography variant="h6" gutterBottom>Dados do Paciente</Typography>
         <TextField fullWidth label="Nome completo" value={nome} onChange={(e) => setNome(e.target.value)} margin="normal" variant="outlined" />
@@ -193,36 +216,31 @@ const CadastroPaciente = ({ onSalvar }) => {
 
         <TextField fullWidth label="Data de Nascimento" type="date" InputLabelProps={{ shrink: true }} value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)} margin="normal" variant="outlined" />
 
-        <Typography variant="h6" gutterBottom>Contato</Typography>
+        <TextField fullWidth label="CEP" value={cep} onBlur={() => buscarEnderecoPorCep(cep)} onChange={(e) => setCep(e.target.value)} margin="normal" variant="outlined" />
+        <TextField fullWidth label="Endereço" value={endereco} onChange={(e) => setEndereco(e.target.value)} margin="normal" variant="outlined" />
+        <TextField fullWidth label="Bairro" value={bairro} onChange={(e) => setBairro(e.target.value)} margin="normal" variant="outlined" />
+        <TextField fullWidth label="Cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} margin="normal" variant="outlined" disabled />
+        <TextField fullWidth label="Estado" value={estado} onChange={(e) => setEstado(e.target.value)} margin="normal" variant="outlined" disabled />
+        <TextField fullWidth label="Número da Residência" value={numeroResidencia} onChange={(e) => setNumeroResidencia(e.target.value)} margin="normal" variant="outlined" />
+
         <TextField fullWidth label="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} margin="normal" variant="outlined" />
         <TextField fullWidth label="Telefone" value={telefone} onChange={(e) => setTelefone(e.target.value)} margin="normal" variant="outlined" />
-        <TextField fullWidth label="Contato de Emergência" value={contatoEmergencia} onChange={(e) => setContatoEmergencia(e.target.value)} margin="normal" variant="outlined" />
-
-        <Typography variant="h6" gutterBottom>Endereço</Typography>
-        <TextField fullWidth label="CEP" value={cep} onBlur={() => buscarEnderecoPorCep(cep)} onChange={(e) => setCep(e.target.value)} margin="normal" variant="outlined" />
-        <TextField fullWidth label="Endereço (Rua)" value={endereco} onChange={(e) => setEndereco(e.target.value)} margin="normal" variant="outlined" />
-        <TextField fullWidth label="Bairro" value={bairro} onChange={(e) => setBairro(e.target.value)} margin="normal" variant="outlined" />
-        <TextField fullWidth label="Cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} margin="normal" variant="outlined" />
-        <TextField fullWidth label="Estado" value={estado} onChange={(e) => setEstado(e.target.value)} margin="normal" variant="outlined" />
-        <TextField fullWidth label="Número da residência" value={numeroResidencia} onChange={(e) => setNumeroResidencia(e.target.value)} margin="normal" variant="outlined" />
 
         <FormControlLabel
-          control={
-            <Checkbox
-              checked={temProntuarioAntigo}
-              onChange={(e) => setTemProntuarioAntigo(e.target.checked)}
-            />
-          }
+          control={<Checkbox checked={temProntuarioAntigo} onChange={(e) => setTemProntuarioAntigo(e.target.checked)} />}
           label="Possui prontuário antigo?"
         />
+        
         {temProntuarioAntigo && (
           <>
-            <TextField fullWidth label="Número do Prontuário Antigo" value={prontuarioAntigo} onChange={(e) => setProntuarioAntigo(e.target.value)} margin="normal" variant="outlined" />
+            <TextField fullWidth label="Prontuário Antigo" value={prontuarioAntigo} onChange={(e) => setProntuarioAntigo(e.target.value)} margin="normal" variant="outlined" />
             <TextField fullWidth label="Localização do Prontuário Antigo" value={localizacaoProntuarioAntigo} onChange={(e) => setLocalizacaoProntuarioAntigo(e.target.value)} margin="normal" variant="outlined" />
           </>
         )}
 
-        <Button fullWidth variant="contained" color="primary" onClick={cadastrarPaciente} sx={styles.submitButton} disabled={isSubmitting}>Cadastrar</Button>
+        <Button fullWidth variant="contained" color="primary" onClick={cadastrarPaciente} sx={styles.submitButton} disabled={isSubmitting}>
+          {isSubmitting ? 'Cadastrando...' : 'Cadastrar'}
+        </Button>
       </Box>
     </Container>
   );

@@ -28,6 +28,8 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mensagemAlerta, setMensagemAlerta] = useState({ tipo: '', texto: '' });
   const [mostrarAlerta, setMostrarAlerta] = useState(false);
+  const [naoPossuiRg, setNaoPossuiRg] = useState(false);
+  const [naoPossuiCpf, setNaoPossuiCpf] = useState(false);
 
   const styles = useStyles();
   const auth = getAuth();
@@ -90,7 +92,7 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
   const cadastrarPaciente = async () => {
     if (isSubmitting) return;
 
-    if (!nome || !cpf || !rg || !endereco || !cep || !numeroResidencia || !email || !telefone || !dataNascimento) {
+    if (!nome || (!cpf && !naoPossuiCpf) || (!rg && !naoPossuiRg) || !endereco || !cep || !numeroResidencia || !email || !telefone || !dataNascimento) {
       exibirMensagemAlerta("warning", "Por favor, preencha todos os campos.");
       return;
     }
@@ -98,11 +100,13 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
     setIsSubmitting(true);
 
     try {
-      const pacienteJaExiste = await buscarPacientePorCPF(cpfLimpo);
-      if (pacienteJaExiste) {
-        exibirMensagemAlerta("error", "Erro: Paciente com este CPF já está cadastrado.");
-        setIsSubmitting(false);
-        return;
+      if (!naoPossuiCpf) {
+        const pacienteJaExiste = await buscarPacientePorCPF(cpfLimpo);
+        if (pacienteJaExiste) {
+          exibirMensagemAlerta("error", "Erro: Paciente com este CPF já está cadastrado.");
+          setIsSubmitting(false);
+          return;
+        }
       }
 
       const numeroProntuario = await buscarUltimoNumeroProntuario();
@@ -113,8 +117,8 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
 
       const pacienteData = {
         nome,
-        cpf: cpfLimpo,
-        rg,
+        cpf: naoPossuiCpf ? null : cpfLimpo,
+        rg: naoPossuiRg ? null : rg,
         sexoBiologico,
         genero,
         dataNascimento,
@@ -162,6 +166,8 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
       setTemProntuarioAntigo(false);
       setProntuarioAntigo('');
       setLocalizacaoProntuarioAntigo('');
+      setNaoPossuiRg(false);
+      setNaoPossuiCpf(false);
 
       // Atualiza a página após o cadastro
       window.location.reload();
@@ -184,9 +190,19 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
       <Box component="form" sx={styles.formContainer} noValidate autoComplete="off">
         <Typography variant="h6" gutterBottom>Dados do Paciente</Typography>
         <TextField fullWidth label="Nome completo" value={nome} onChange={(e) => setNome(e.target.value)} margin="normal" variant="outlined" />
-        <TextField fullWidth label="CPF" value={cpf} onChange={handleChangeCPF} margin="normal" variant="outlined" inputProps={{ maxLength: 14 }} />
-        <TextField fullWidth label="RG" value={rg} onChange={(e) => setRg(e.target.value)} margin="normal" variant="outlined" />
         
+        <FormControlLabel
+          control={<Checkbox checked={naoPossuiCpf} onChange={(e) => setNaoPossuiCpf(e.target.checked)} />}
+          label="Não possui CPF"
+        />
+        <TextField fullWidth label="CPF" value={cpf} onChange={handleChangeCPF} margin="normal" variant="outlined" inputProps={{ maxLength: 14 }} disabled={naoPossuiCpf} />
+        
+        <FormControlLabel
+          control={<Checkbox checked={naoPossuiRg} onChange={(e) => setNaoPossuiRg(e.target.checked)} />}
+          label="Não possui RG"
+        />
+        <TextField fullWidth label="RG" value={rg} onChange={(e) => setRg(e.target.value)} margin="normal" variant="outlined" disabled={naoPossuiRg} />
+
         <FormControl fullWidth margin="normal">
           <InputLabel id="sexo-biologico-label">Sexo Biológico</InputLabel>
           <Select

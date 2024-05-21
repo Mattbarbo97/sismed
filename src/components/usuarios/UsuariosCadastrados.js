@@ -18,7 +18,9 @@ import {
     TableRow,
     TextField,
     Typography,
+    // eslint-disable-next-line
     Checkbox,
+    // eslint-disable-next-line
     FormControlLabel,
 } from "@mui/material";
 import {
@@ -72,6 +74,7 @@ const ModalDetalhesUsuario = ({
     onSave,
 }) => {
     const [editandoUsuario, setEditandoUsuario] = useState(usuario);
+    // eslint-disable-next-line
     const [identificacaoProfissionalAtiva, setIdentificacaoProfissionalAtiva] = useState(false);
 
     useEffect(() => {
@@ -83,7 +86,7 @@ const ModalDetalhesUsuario = ({
         const { name, value } = e.target;
         setEditandoUsuario((prev) => ({ ...prev, [name]: value }));
     };
-
+    // eslint-disable-next-line
     const handleCheckboxChange = (e) => {
         const checked = e.target.checked;
         setIdentificacaoProfissionalAtiva(checked);

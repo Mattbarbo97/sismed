@@ -312,7 +312,6 @@ const PacientesCadastrados = () => {
                                     <Typography>Estado: {pacienteSelecionado.estado}</Typography>
                                     <Typography>Número da residência: {pacienteSelecionado.numeroResidencia}</Typography>
                                     <Typography>Telefone: {pacienteSelecionado.telefone}</Typography>
-                                    <Typography><strong>Contato de Emergência:</strong> {pacienteSelecionado.contatoEmergencia}</Typography>
                                     {pacienteSelecionado.prontuarioAntigo && (
                                         <>
                                             <Typography>Número do Prontuário Antigo: {pacienteSelecionado.prontuarioAntigo}</Typography>
@@ -514,20 +513,6 @@ const PacientesCadastrados = () => {
                                             setPacienteSelecionado((prev) => ({
                                                 ...prev,
                                                 telefone: e.target.value,
-                                            }))
-                                        }
-                                        variant="outlined"
-                                    />
-                                    <TextField
-                                        fullWidth
-                                        margin="dense"
-                                        label="Contato de Emergência"
-                                        type="text"
-                                        value={pacienteSelecionado.contatoEmergencia}
-                                        onChange={(e) =>
-                                            setPacienteSelecionado((prev) => ({
-                                                ...prev,
-                                                contatoEmergencia: e.target.value,
                                             }))
                                         }
                                         variant="outlined"

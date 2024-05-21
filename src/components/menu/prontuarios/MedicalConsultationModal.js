@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  // eslint-disable-next-line
   Box, Button, IconButton, Modal, Paper, Typography, TextField, InputAdornment, Checkbox, FormControlLabel
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -137,6 +136,19 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
     setPrintContentList([]);
   };
 
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result;
+        const updatedAnotacoes = `${formik.values.anotacoes}\n![Uploaded Image](${base64String})`;
+        formik.setFieldValue('anotacoes', updatedAnotacoes);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <>
       <Modal open={open} onClose={onClose}>
@@ -259,6 +271,17 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
               variant="outlined"
               margin="normal"
             />
+            <Button
+              variant="contained"
+              component="label"
+            >
+              Upload Imagem
+              <input
+                type="file"
+                hidden
+                onChange={handleFileUpload}
+              />
+            </Button>
 
             <Box
               sx={{

@@ -1,8 +1,4 @@
-import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
-import SearchIcon from "@mui/icons-material/Search";
-import VisibilityIcon from "@mui/icons-material/Visibility";
+import React, { useEffect, useState } from "react";
 import {
     Box,
     Button,
@@ -22,24 +18,32 @@ import {
     TableRow,
     TextField,
     Typography,
+    Checkbox,
+    FormControlLabel,
 } from "@mui/material";
+import {
+    Add as AddIcon,
+    Delete as DeleteIcon,
+    Edit as EditIcon,
+    Search as SearchIcon,
+    Visibility as VisibilityIcon,
+    Refresh as RefreshIcon, // Adicione o ícone de refresh para reativar
+} from "@mui/icons-material";
 import { ThemeProvider } from "@mui/material/styles";
 import {
     collection,
-    deleteDoc,
     doc,
     getDocs,
     getFirestore,
     updateDoc,
     getDoc
 } from "firebase/firestore";
-import React, { useEffect, useState } from "react";
 import temaUNNA from "../../temas";
 import MenuPrincipal from "../menu/MenuPrincipal";
 import CadastroUsuario from "./CadastroUsuario";
 import "./UsuariosCadastrados.css";
 
-const AcoesUsuario = ({ usuario, onEdit, onDelete, onView }) => {
+const AcoesUsuario = ({ usuario, onEdit, onDelete, onView, onReactivate }) => {
     return (
         <>
             <IconButton color="primary" onClick={() => onEdit(usuario)}>
@@ -48,6 +52,11 @@ const AcoesUsuario = ({ usuario, onEdit, onDelete, onView }) => {
             <IconButton color="secondary" onClick={() => onDelete(usuario)}>
                 <DeleteIcon />
             </IconButton>
+            {usuario.ativo === false && (
+                <IconButton color="default" onClick={() => onReactivate(usuario)}>
+                    <RefreshIcon />
+                </IconButton>
+            )}
             <IconButton onClick={() => onView(usuario)}>
                 <VisibilityIcon />
             </IconButton>
@@ -63,14 +72,24 @@ const ModalDetalhesUsuario = ({
     onSave,
 }) => {
     const [editandoUsuario, setEditandoUsuario] = useState(usuario);
+    const [identificacaoProfissionalAtiva, setIdentificacaoProfissionalAtiva] = useState(false);
 
     useEffect(() => {
-        setEditandoUsuario(usuario); // Atualiza quando o Colaborador muda
+        setEditandoUsuario(usuario); // Atualiza quando o usuário muda
+        setIdentificacaoProfissionalAtiva(usuario.identificacaoProfissional !== null); // Define o estado inicial da checkbox com base no valor do usuário
     }, [usuario]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setEditandoUsuario((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleCheckboxChange = (e) => {
+        const checked = e.target.checked;
+        setIdentificacaoProfissionalAtiva(checked);
+        if (!checked) {
+            setEditandoUsuario((prev) => ({ ...prev, identificacaoProfissional: null }));
+        }
     };
 
     const handleClose = () => {
@@ -99,7 +118,6 @@ const ModalDetalhesUsuario = ({
                             fullWidth
                             name="nome"
                             value={editandoUsuario?.nome || ""}
-                            onChange={handleChange}
                             InputProps={{ readOnly: true }}
                         />
                         <TextField
@@ -109,7 +127,6 @@ const ModalDetalhesUsuario = ({
                             fullWidth
                             name="rg"
                             value={editandoUsuario?.rg || ""}
-                            onChange={handleChange}
                             InputProps={{ readOnly: true }}
                         />
                         <TextField
@@ -119,7 +136,6 @@ const ModalDetalhesUsuario = ({
                             fullWidth
                             name="cpf"
                             value={editandoUsuario?.cpf || ""}
-                            onChange={handleChange}
                             InputProps={{ readOnly: true }}
                         />
                         <TextField
@@ -129,8 +145,16 @@ const ModalDetalhesUsuario = ({
                             fullWidth
                             name="identificacaoProfissional"
                             value={editandoUsuario?.identificacaoProfissional || ""}
-                            onChange={handleChange}
                             InputProps={{ readOnly: true }}
+                        />
+                        <TextField
+                            margin="dense"
+                            label="E-mail"
+                            type="email"
+                            fullWidth
+                            name="email"
+                            value={editandoUsuario?.email || ""}
+                            onChange={handleChange}
                         />
                         <TextField
                             margin="dense"
@@ -175,7 +199,6 @@ const ModalDetalhesUsuario = ({
                             fullWidth
                             name="cidade"
                             value={editandoUsuario?.cidade || ""}
-                            onChange={handleChange}
                             InputProps={{ readOnly: true }}
                         />
                         <TextField
@@ -185,7 +208,6 @@ const ModalDetalhesUsuario = ({
                             fullWidth
                             name="estado"
                             value={editandoUsuario?.estado || ""}
-                            onChange={handleChange}
                             InputProps={{ readOnly: true }}
                         />
                         <TextField
@@ -204,6 +226,7 @@ const ModalDetalhesUsuario = ({
                         <Typography>RG: {usuario?.rg}</Typography>
                         <Typography>CPF: {usuario?.cpf}</Typography>
                         <Typography>Identificação do Profissional: {usuario?.identificacaoProfissional}</Typography>
+                        <Typography>E-mail: {usuario?.email}</Typography>
                         <Typography>Função: {usuario?.funcao}</Typography>
                         <Typography>CEP: {usuario?.cep}</Typography>
                         <Typography>Endereço: {usuario?.endereco}</Typography>
@@ -251,6 +274,7 @@ const UsuariosCadastrados = () => {
                 console.log("Dados do Colaborador:", userData); // Adicionar este log para verificar os dados do Colaborador
                 // Inicializa a propriedade "funcao" como uma string vazia caso não exista
                 userData.funcao = userData.funcao || "";
+                userData.ativo = userData.ativo !== false; // Define o usuário como ativo se a propriedade não existir
                 // Busca o nome da função usando o idFuncao na coleção dbo.usuario
                 const docRefFuncao = doc(firestore, "dbo.usuario", userData.idFuncao);
                 console.log("Referência do documento da função:", docRefFuncao); // Adicionar este log para verificar a referência do documento
@@ -317,23 +341,53 @@ const UsuariosCadastrados = () => {
     };
 
     const handleDelete = async (usuario) => {
-        const confirmar = window.confirm(
-            "Tem certeza que deseja excluir este Colaborador?"
+        const confirmar = window.prompt(
+            "Para desativar o usuário, digite 'desativar'"
         );
-        if (confirmar) {
+        if (confirmar === "desativar") {
             try {
                 const docRef = doc(
                     getFirestore(),
                     "usuarios_cadastrados",
                     usuario.id
                 );
-                await deleteDoc(docRef);
-                setUsuarios(usuarios.filter((user) => user.id !== usuario.id));
-                alert("Colaborador excluído com sucesso!");
+                await updateDoc(docRef, {
+                    ativo: false,
+                });
+                setUsuarios(
+                    usuarios.map((user) =>
+                        user.id === usuario.id ? { ...user, ativo: false } : user
+                    )
+                );
+                alert("Colaborador desativado com sucesso!");
             } catch (error) {
-                console.error("Erro ao excluir Colaborador:", error);
-                alert("Erro ao excluir Colaborador.");
+                console.error("Erro ao desativar Colaborador:", error);
+                alert("Erro ao desativar Colaborador.");
             }
+        } else {
+            alert("Ação de desativação cancelada.");
+        }
+    };
+
+    const handleReactivate = async (usuario) => {
+        try {
+            const docRef = doc(
+                getFirestore(),
+                "usuarios_cadastrados",
+                usuario.id
+            );
+            await updateDoc(docRef, {
+                ativo: true,
+            });
+            setUsuarios(
+                usuarios.map((user) =>
+                    user.id === usuario.id ? { ...user, ativo: true } : user
+                )
+            );
+            alert("Colaborador reativado com sucesso!");
+        } catch (error) {
+            console.error("Erro ao reativar Colaborador:", error);
+            alert("Erro ao reativar Colaborador.");
         }
     };
 
@@ -365,6 +419,7 @@ const UsuariosCadastrados = () => {
                 email: usuarioEditado.email,
                 cpf: usuarioEditado.cpf,
                 funcao: usuarioEditado.funcao,
+                identificacaoProfissional: usuarioEditado.identificacaoProfissional || null,
             });
             setUsuarios(
                 usuarios.map((user) =>
@@ -496,7 +551,7 @@ const UsuariosCadastrados = () => {
                                                     ))
                                     )
                                     .map((usuario) => (
-                                        <TableRow key={usuario.id}>
+                                        <TableRow key={usuario.id} className={usuario.ativo === false ? "desativado" : ""}>
                                             <TableCell>
                                                 {usuario.nome}
                                             </TableCell>
@@ -514,6 +569,7 @@ const UsuariosCadastrados = () => {
                                                     usuario={usuario}
                                                     onEdit={handleEdit}
                                                     onDelete={handleDelete}
+                                                    onReactivate={handleReactivate}
                                                     onView={handleAbrirModal}
                                                 />
                                             </TableCell>

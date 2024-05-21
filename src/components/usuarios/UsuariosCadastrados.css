@@ -35,6 +35,11 @@
   .MuiIconButton-root {
     margin: 5px;
   }
+
+  .desativado {
+    background-color: #be0202; /* cor de fundo vermelha clara */
+}
+
   
   .MuiTypography-h4 {
     color: #a26e35; /* Cor primária para o título */

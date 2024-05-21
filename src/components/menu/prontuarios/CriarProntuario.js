@@ -242,12 +242,13 @@ const ProntuarioEletronico = () => {
       <Paper
         className="informacoes-paciente"
         sx={{
-          padding: 2
+          padding: 2,
+          width: '50%' // Reduza a largura do campo de informações do paciente
         }}
       >
         <Typography
           style={{
-            fontSize: "1.5rem",
+            fontSize: "1.2rem", // Diminua o tamanho da fonte do título
             fontWeight: "bold"
           }}
         >
@@ -262,8 +263,8 @@ const ProntuarioEletronico = () => {
                 gap: 2
               }}
             >
-              <Typography variant="h6">Nome:</Typography>
-              <Typography variant="h6">{pacienteSelecionado.nome}</Typography>
+              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>Nome:</Typography> {/* Diminua o tamanho da fonte */}
+              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>{pacienteSelecionado.nome}</Typography>
             </Box>
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -274,8 +275,8 @@ const ProntuarioEletronico = () => {
                 gap: 2
               }}
             >
-              <Typography variant="h6">Data de Nascimento:</Typography>
-              <Typography variant="h6">
+              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>Data de Nascimento:</Typography>
+              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>
                 {formatDate(new Date(pacienteSelecionado.dataNascimento))}
               </Typography>
             </Box>
@@ -288,8 +289,8 @@ const ProntuarioEletronico = () => {
                 gap: 2
               }}
             >
-              <Typography variant="h6">Genero:</Typography>
-              <Typography variant="h6">{pacienteSelecionado.genero}</Typography>
+              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>Genero:</Typography>
+              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>{pacienteSelecionado.genero}</Typography>
             </Box>
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -300,10 +301,8 @@ const ProntuarioEletronico = () => {
                 gap: 2
               }}
             >
-              <Typography variant="h6">Telefone:</Typography>
-              <Typography variant="h6">
-                {pacienteSelecionado.telefone}
-              </Typography>
+              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>Telefone:</Typography>
+              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>{pacienteSelecionado.telefone}</Typography>
             </Box>
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -314,12 +313,12 @@ const ProntuarioEletronico = () => {
                 gap: 2
               }}
             >
-              <Typography variant="h6">E-mail:</Typography>
-              <Typography variant="h6">{pacienteSelecionado.email}</Typography>
+              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>E-mail:</Typography>
+              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>{pacienteSelecionado.email}</Typography>
             </Box>
           </Grid>
           <Grid item xs={12} sm={6}>
-            <Typography variant="h6">
+            <Typography variant="body1" style={{ fontSize: '0.9rem' }}>
               Endereço: {pacienteSelecionado.endereco} -{" "}
               {pacienteSelecionado.numeroResidencia} -{" "}
               {pacienteSelecionado.bairro} - {pacienteSelecionado.cidade} -{" "}
@@ -334,8 +333,8 @@ const ProntuarioEletronico = () => {
                 gap: 2
               }}
             >
-              <Typography variant="h6">Número de Prontuário:</Typography>
-              <Typography variant="h6">
+              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>Número de Prontuário:</Typography>
+              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>
                 {pacienteSelecionado.numeroProntuario}
               </Typography>
             </Box>

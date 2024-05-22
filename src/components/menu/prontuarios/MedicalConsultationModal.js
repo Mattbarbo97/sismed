@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-    // eslint-disable-next-line
   Box, Button, IconButton, Modal, Paper, Typography, TextField, InputAdornment, Checkbox, FormControlLabel
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -41,6 +40,10 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
   const [printContentList, setPrintContentList] = useState([]);
   const [printIndex, setPrintIndex] = useState(0);
   const [printTitle, setPrintTitle] = useState('');
+  const [enableImageField, setEnableImageField] = useState(false);
+  const [image, setImage] = useState(null);
+  const [imageCaption, setImageCaption] = useState("");
+  const [openImageModal, setOpenImageModal] = useState(false);
 
   const formik = useFormik({
     initialValues: {
@@ -62,7 +65,7 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
         value: exame.value.replace(/<br>/g, '\n')
       }));
       
-      handleSave(values);
+      handleSave({ ...values, image, imageCaption });
       formik.resetForm();
     },
   });
@@ -142,9 +145,7 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        const base64String = reader.result;
-        const updatedAnotacoes = `${formik.values.anotacoes}\n![Uploaded Image](${base64String})`;
-        formik.setFieldValue('anotacoes', updatedAnotacoes);
+        setImage(reader.result);
       };
       reader.readAsDataURL(file);
     }
@@ -272,17 +273,48 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
               variant="outlined"
               margin="normal"
             />
-            <Button
-              variant="contained"
-              component="label"
-            >
-              Upload Imagem
-              <input
-                type="file"
-                hidden
-                onChange={handleFileUpload}
-              />
-            </Button>
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={enableImageField}
+                  onChange={() => setEnableImageField((prev) => !prev)}
+                />
+              }
+              label="Adicionar Imagem"
+            />
+            {enableImageField && (
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                  padding: 2
+                }}
+              >
+                <TextField
+                  type="file"
+                  onChange={handleFileUpload}
+                  variant="standard"
+                />
+                {image && (
+                  <>
+                    <img
+                      src={image}
+                      alt="Uploaded"
+                      style={{ width: '50px', height: '50px', objectFit: 'contain', cursor: 'pointer' }}
+                      onClick={() => setOpenImageModal(true)}
+                    />
+                    <TextField
+                      label="Legenda da Imagem"
+                      value={imageCaption}
+                      onChange={(e) => setImageCaption(e.target.value)}
+                      variant="standard"
+                    />
+                  </>
+                )}
+              </Box>
+            )}
 
             <Box
               sx={{
@@ -315,6 +347,7 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
           </form>
         </Paper>
       </Modal>
+
       <Modal open={confirmClear}>
         <Paper
           sx={{
@@ -364,7 +397,7 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
               sx={{
                 backgroundColor: "#f44336",
                 "&:hover": {
-                    backgroundColor: "#d32f2f",
+                  backgroundColor: "#d32f2f",
                 },
               }}
               onClick={() => setConfirmClear(false)}
@@ -374,6 +407,7 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
           </Box>
         </Paper>
       </Modal>
+
       {printContentList.length > 0 && (
         <PrintableDocument
           open={openPrintModal}
@@ -386,6 +420,22 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
           onDocumentPrinted={() => handleDocumentPrinted(printTitle.toLowerCase())}
         />
       )}
+
+      <Modal open={openImageModal} onClose={() => setOpenImageModal(false)}>
+        <Paper
+          sx={{
+            position: "absolute",
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            bgcolor: 'background.paper',
+            boxShadow: 24,
+            p: 4,
+          }}
+        >
+          <img src={image} alt="Ampliado" style={{ width: '100%', height: 'auto' }} />
+        </Paper>
+      </Modal>
     </>
   );
 };

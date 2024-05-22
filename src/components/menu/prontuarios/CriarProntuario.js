@@ -15,16 +15,16 @@ import {
   TableRow,
   TextField,
   Typography,
-  createFilterOptions
+  createFilterOptions,
+  Modal
 } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import AddIcon from '@mui/icons-material/Add';
 import {
   collection,
   doc,
   getDocs,
   getFirestore,
-  // eslint-disable-next-line
-  runTransaction,
   setDoc
 } from "firebase/firestore";
 import { useUser } from "../../../context/UserContext";
@@ -174,10 +174,6 @@ const ProntuarioEletronico = () => {
   const defaultFilterOptions = createFilterOptions();
   const filterOptions = (options, state) => {
     return defaultFilterOptions(options, state).slice(0, 6);
-  };
-  // eslint-disable-next-line
-  const handlePrint = (titulo, conteudo) => {
-    setPrintData({ titulo, conteudo });
   };
 
   return (
@@ -341,6 +337,45 @@ const ProntuarioEletronico = () => {
           </Grid>
         </Grid>
       </Paper>
+      <Modal
+        open={modalConsultaAberto}
+        onClose={() => setModalConsultaAberto(false)}
+        className="modal"
+      >
+        <Paper className="modal-content">
+          <Typography variant="h6">Novo Atendimento</Typography>
+          <Typography variant="subtitle1">Paciente: {pacienteSelecionado.nome}</Typography>
+          <Box className="section-container">
+            <Typography variant="h6">Receitas</Typography>
+            <Box className="section-content">
+              <IconButton>
+                <AddIcon />
+              </IconButton>
+              <Button variant="contained" color="primary">
+                IMPRIMIR RECEITA
+              </Button>
+            </Box>
+          </Box>
+          <Box className="section-container">
+            <Typography variant="h6">Pedidos de Exames</Typography>
+            <Box className="section-content">
+              <IconButton>
+                <AddIcon />
+              </IconButton>
+              <Button variant="contained" color="primary">
+                IMPRIMIR EXAMES
+              </Button>
+            </Box>
+          </Box>
+          <Box>
+            <Typography variant="h6">Evolução</Typography>
+            <TextField multiline rows={4} fullWidth variant="outlined" placeholder="Anotações" />
+          </Box>
+          <Box display="flex" justifyContent="flex-end" marginTop={2}>
+            <Button variant="contained" color="secondary" onClick={() => setModalConsultaAberto(false)}>Fechar</Button>
+          </Box>
+        </Paper>
+      </Modal>
       <TableContainer component={Paper} sx={{ mt: 2 }}>
         <Table aria-label="Histórico do Prontuário">
           <TableHead>
@@ -411,7 +446,6 @@ const ProntuarioEletronico = () => {
           conteudo={printData.conteudo}
           titulo={printData.titulo}
           medico={user}
-          // includeDate={true} // Comentando esta linha
           onDocumentPrinted={(titulo) => console.log(`${titulo} impresso`)}
         />
       )}

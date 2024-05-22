@@ -21,10 +21,10 @@
     }
   </style>
   <script>
-    // Redireciona para a página inicial após 5 segundos
+    // Redireciona para a página anterior após 5 segundos
     setTimeout(function() {
-      window.location.href = "/";
-    }, 5000);
+      window.history.back();
+    }, 10);
   </script>
 </head>
 <body>
@@ -32,9 +32,9 @@
     <h2>404</h2>
     <h1>Page Not Found</h1>
     <p>Opa, tivemos um probleminha.</p>
-    <h3>Mas você será direcionado ao início</h3>
+    <h3>Mas você será direcionado à página anterior</h3>
     <p>Obrigado! <code>public</code> directory.</p>
   </div>
-  <div id="load">Redirecting to the home page in 5 seconds...</div>
+  <div id="load">Redirecionando para a página anterior em 5 segundos...</div>
 </body>
 </html>

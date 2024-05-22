@@ -60,7 +60,6 @@ const PacientesCadastrados = () => {
     const [pacienteSelecionado, setPacienteSelecionado] = useState(null);
     const [termoPesquisa, setTermoPesquisa] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [totalPacientes, setTotalPacientes] = useState(0);
     const styles = useStyles();
 
     useEffect(() => {
@@ -76,7 +75,6 @@ const PacientesCadastrados = () => {
                 }));
                 const pacientesSemDuplicatas = await removerDuplicatas(pacientesList);
                 setPacientes(pacientesSemDuplicatas);
-                setTotalPacientes(pacientesSemDuplicatas.length);
             } catch (error) {
                 console.error(error);
             } finally {
@@ -105,6 +103,21 @@ const PacientesCadastrados = () => {
 
         return pacientesList.filter(paciente => !duplicatas.includes(paciente));
     };
+
+    useEffect(() => {
+        const handleBeforeUnload = (event) => {
+            // Fecha os modais antes de recarregar a página
+            setModalCadastroAberto(false);
+            setModalDetalhesAberto(false);
+            setModalEditarAberto(false);
+        };
+
+        window.addEventListener("beforeunload", handleBeforeUnload);
+
+        return () => {
+            window.removeEventListener("beforeunload", handleBeforeUnload);
+        };
+    }, []);
 
     const handleAbrirModalCadastro = () => {
         setModalCadastroAberto(true);
@@ -153,7 +166,6 @@ const PacientesCadastrados = () => {
                 setPacientes(pacientes.map((item) =>
                     item.id === paciente.id ? { ...item, ativo: false } : item
                 ));
-                setTotalPacientes(totalPacientes - 1);
                 alert("Paciente inativado com sucesso!");
             } catch (error) {
                 console.error("Erro ao inativar paciente:", error);
@@ -186,7 +198,6 @@ const PacientesCadastrados = () => {
             const docRef = await addDoc(collection(firestore, "pacientes_cadastrados"), dadosPaciente);
             const novoPaciente = { id: docRef.id, ...dadosPaciente };
             setPacientes((prevPacientes) => [...prevPacientes, novoPaciente]);
-            setTotalPacientes(totalPacientes + 1);
             handleFecharModalCadastro();
             alert("Paciente adicionado com sucesso!");
         } catch (error) {
@@ -217,9 +228,6 @@ const PacientesCadastrados = () => {
                             Pacientes Cadastrados
                         </Typography>
                         <Box display="flex" alignItems="center">
-                            <Typography variant="h6" component="div" style={{ marginRight: "1rem" }}>
-                                Total de Pacientes: {totalPacientes}
-                            </Typography>
                             <TextField
                                 label="Pesquisar Paciente"
                                 variant="outlined"

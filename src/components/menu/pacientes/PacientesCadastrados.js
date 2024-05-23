@@ -28,6 +28,7 @@ import {
     Edit as EditIcon,
     Search as SearchIcon,
     Visibility as VisibilityIcon,
+    AddCircle as AddCircleIcon,
 } from "@mui/icons-material";
 import { collection, getDocs, getFirestore, doc, updateDoc, deleteDoc, addDoc } from "firebase/firestore";
 import temaUNNA from "../../../temas";
@@ -60,6 +61,9 @@ const PacientesCadastrados = () => {
     const [pacienteSelecionado, setPacienteSelecionado] = useState(null);
     const [termoPesquisa, setTermoPesquisa] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [errors, setErrors] = useState({});
+    const [telefones, setTelefones] = useState(['']);
+    const [contadorPacientes, setContadorPacientes] = useState(0);
     const styles = useStyles();
 
     useEffect(() => {
@@ -75,6 +79,7 @@ const PacientesCadastrados = () => {
                 }));
                 const pacientesSemDuplicatas = await removerDuplicatas(pacientesList);
                 setPacientes(pacientesSemDuplicatas);
+                setContadorPacientes(pacientesSemDuplicatas.length); // Atualiza o contador
             } catch (error) {
                 console.error(error);
             } finally {
@@ -104,21 +109,6 @@ const PacientesCadastrados = () => {
         return pacientesList.filter(paciente => !duplicatas.includes(paciente));
     };
 
-    useEffect(() => {
-        const handleBeforeUnload = (event) => {
-            // Fecha os modais antes de recarregar a página
-            setModalCadastroAberto(false);
-            setModalDetalhesAberto(false);
-            setModalEditarAberto(false);
-        };
-
-        window.addEventListener("beforeunload", handleBeforeUnload);
-
-        return () => {
-            window.removeEventListener("beforeunload", handleBeforeUnload);
-        };
-    }, []);
-
     const handleAbrirModalCadastro = () => {
         setModalCadastroAberto(true);
     };
@@ -135,7 +125,9 @@ const PacientesCadastrados = () => {
         setModalDetalhesAberto(false);
     };
 
-    const handleAbrirModalEditar = () => {
+    const handleAbrirModalEditar = (paciente) => {
+        setPacienteSelecionado(paciente);
+        setTelefones(paciente.telefone.split(',').map(tel => tel.trim()));
         setModalEditarAberto(true);
     };
 
@@ -148,8 +140,7 @@ const PacientesCadastrados = () => {
     };
 
     const handleEdit = (paciente) => {
-        setPacienteSelecionado(paciente);
-        handleAbrirModalEditar();
+        handleAbrirModalEditar(paciente);
     };
 
     const handleView = (paciente) => {
@@ -166,6 +157,7 @@ const PacientesCadastrados = () => {
                 setPacientes(pacientes.map((item) =>
                     item.id === paciente.id ? { ...item, ativo: false } : item
                 ));
+                setContadorPacientes(contadorPacientes - 1); // Atualiza o contador
                 alert("Paciente inativado com sucesso!");
             } catch (error) {
                 console.error("Erro ao inativar paciente:", error);
@@ -175,6 +167,7 @@ const PacientesCadastrados = () => {
     };
 
     const handleAtualizarPaciente = async (dadosPaciente) => {
+        if (!validateForm(dadosPaciente)) return;
         try {
             const pacienteRef = doc(getFirestore(), "pacientes_cadastrados", dadosPaciente.id);
             await updateDoc(pacienteRef, dadosPaciente);
@@ -191,6 +184,7 @@ const PacientesCadastrados = () => {
 
     const handleAdicionarPaciente = async (dadosPaciente) => {
         if (isSubmitting) return;  // Evita múltiplas submissões
+        if (!validateForm(dadosPaciente)) return;
 
         setIsSubmitting(true);
         try {
@@ -198,6 +192,7 @@ const PacientesCadastrados = () => {
             const docRef = await addDoc(collection(firestore, "pacientes_cadastrados"), dadosPaciente);
             const novoPaciente = { id: docRef.id, ...dadosPaciente };
             setPacientes((prevPacientes) => [...prevPacientes, novoPaciente]);
+            setContadorPacientes(contadorPacientes + 1); // Atualiza o contador
             handleFecharModalCadastro();
             alert("Paciente adicionado com sucesso!");
         } catch (error) {
@@ -206,6 +201,64 @@ const PacientesCadastrados = () => {
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const validateForm = (dadosPaciente) => {
+        const newErrors = {};
+
+        if (!dadosPaciente.nome) {
+            newErrors.nome = "Nome é obrigatório";
+        }
+        if (!dadosPaciente.email) {
+            newErrors.email = "E-mail é obrigatório";
+        } else if (!/\S+@\S+\.\S+/.test(dadosPaciente.email)) {
+            newErrors.email = "Formato de e-mail inválido";
+        }
+        if (!dadosPaciente.cpf) {
+            newErrors.cpf = "CPF é obrigatório";
+        }
+        if (!telefones.some(tel => tel)) {
+            newErrors.telefone = "Telefone é obrigatório";
+        } else {
+            telefones.forEach(telefone => {
+                if (telefone && !/^\(\d{2}\)\d{4,5}-\d{4}$/.test(telefone)) {
+                    newErrors.telefone = "Formato de telefone inválido";
+                }
+            });
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const formatTelefone = (telefone) => {
+        const cleaned = telefone.replace(/\D/g, '');
+        if (cleaned.length === 10) {
+            return cleaned.replace(/(\d{2})(\d{4})(\d{4})/, '($1)$2-$3');
+        } else if (cleaned.length === 11) {
+            return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1)$2-$3');
+        }
+        return telefone;
+    };
+
+    const handleTelefoneChange = (index, value) => {
+        const formatted = formatTelefone(value);
+        const newTelefones = [...telefones];
+        newTelefones[index] = formatted;
+        setTelefones(newTelefones);
+        setPacienteSelecionado((prev) => ({
+            ...prev,
+            telefone: newTelefones.join(', '),
+        }));
+    };
+
+    const handleAddTelefone = () => {
+        setTelefones([...telefones, '']);
+    };
+
+    const formatarCPF = (cpf) => {
+        if (!cpf) return '';
+        return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
     };
 
     const tableHead = ["Nome", "E-mail", "CPF", "Gênero", "Telefone", "Ações"];
@@ -225,7 +278,7 @@ const PacientesCadastrados = () => {
                 <div className={styles.usuariosContent}>
                     <Box display="flex" justifyContent="space-between" alignItems="left" marginBottom="2rem">
                         <Typography variant="h4" gutterBottom component="div">
-                            Pacientes Cadastrados
+                            Pacientes Cadastrados ({contadorPacientes})
                         </Typography>
                         <Box display="flex" alignItems="center">
                             <TextField
@@ -279,7 +332,7 @@ const PacientesCadastrados = () => {
                                         <TableRow key={index}>
                                             <TableCell>{paciente.nome}</TableCell>
                                             <TableCell>{paciente.email}</TableCell>
-                                            <TableCell>{paciente.cpf || 'N/A'}</TableCell>
+                                            <TableCell>{formatarCPF(paciente.cpf) || 'N/A'}</TableCell>
                                             <TableCell>{paciente.genero}</TableCell>
                                             <TableCell>{paciente.telefone}</TableCell>
                                             <TableCell>
@@ -300,7 +353,7 @@ const PacientesCadastrados = () => {
                     <Dialog open={modalCadastroAberto} onClose={handleFecharModalCadastro} fullWidth maxWidth="md">
                         <DialogTitle>Cadastrar Novo Paciente</DialogTitle>
                         <DialogContent>
-                            <CadastroPaciente onSalvar={handleAdicionarPaciente} />
+                            <CadastroPaciente onSalvar={handleAdicionarPaciente} errors={errors} />
                         </DialogContent>
                         <DialogActions>
                             <Button onClick={handleFecharModalCadastro}>Cancelar</Button>
@@ -315,7 +368,7 @@ const PacientesCadastrados = () => {
                                 <>
                                     <Typography>Nome: {pacienteSelecionado.nome}</Typography>
                                     <Typography>E-mail: {pacienteSelecionado.email}</Typography>
-                                    <Typography>CPF: {pacienteSelecionado.cpf || 'N/A'}</Typography>
+                                    <Typography>CPF: {formatarCPF(pacienteSelecionado.cpf) || 'N/A'}</Typography>
                                     <Typography>RG: {pacienteSelecionado.rg || 'N/A'}</Typography>
                                     <Typography>Sexo Biológico: {pacienteSelecionado.sexoBiologico || 'N/A'}</Typography>
                                     <Typography>Gênero: {pacienteSelecionado.genero}</Typography>
@@ -357,6 +410,8 @@ const PacientesCadastrados = () => {
                                             readOnly: true,
                                         }}
                                         variant="outlined"
+                                        error={!!errors.nome}
+                                        helperText={errors.nome}
                                     />
                                     <TextField
                                         fullWidth
@@ -371,6 +426,8 @@ const PacientesCadastrados = () => {
                                             }))
                                         }
                                         variant="outlined"
+                                        error={!!errors.email}
+                                        helperText={errors.email}
                                     />
                                     <TextField
                                         fullWidth
@@ -382,6 +439,8 @@ const PacientesCadastrados = () => {
                                             readOnly: true,
                                         }}
                                         variant="outlined"
+                                        error={!!errors.cpf}
+                                        helperText={errors.cpf}
                                     />
                                     <TextField
                                         fullWidth
@@ -518,20 +577,26 @@ const PacientesCadastrados = () => {
                                         }
                                         variant="outlined"
                                     />
-                                    <TextField
-                                        fullWidth
-                                        margin="dense"
-                                        label="Telefone"
-                                        type="text"
-                                        value={pacienteSelecionado.telefone}
-                                        onChange={(e) =>
-                                            setPacienteSelecionado((prev) => ({
-                                                ...prev,
-                                                telefone: e.target.value,
-                                            }))
-                                        }
-                                        variant="outlined"
-                                    />
+                                    {telefones.map((telefone, index) => (
+                                        <TextField
+                                            key={index}
+                                            fullWidth
+                                            margin="dense"
+                                            label={`Telefone ${index + 1}`}
+                                            type="text"
+                                            value={telefone}
+                                            onChange={(e) => handleTelefoneChange(index, e.target.value)}
+                                            variant="outlined"
+                                            error={!!errors.telefone}
+                                            helperText={errors.telefone}
+                                        />
+                                    ))}
+                                    <Box display="flex" alignItems="center" marginTop={2}>
+                                        <IconButton color="primary" onClick={handleAddTelefone}>
+                                            <AddCircleIcon />
+                                        </IconButton>
+                                        <Typography>Possui mais de um telefone?</Typography>
+                                    </Box>
                                     <FormControlLabel
                                         control={
                                             <Checkbox

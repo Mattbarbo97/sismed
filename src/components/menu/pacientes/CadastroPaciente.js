@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Container, TextField, Button, Box, Typography, MenuItem, FormControl, InputLabel, Select, Checkbox, FormControlLabel, Alert } from '@mui/material';
+import { Container, TextField, Button, Box, Typography, MenuItem, FormControl, InputLabel, Select, Checkbox, FormControlLabel, Alert, IconButton } from '@mui/material';
 import { getFirestore, collection, query, where, getDocs, orderBy, limit, doc, setDoc } from 'firebase/firestore';
 import axios from 'axios';
 import { createUserWithEmailAndPassword, getAuth } from 'firebase/auth';
 import MenuPrincipal from '../MenuPrincipal'; // Ajuste o caminho conforme necessário
 import useStyles from './CadastroPacienteStyles';
+import { AddCircle as AddCircleIcon } from '@mui/icons-material';
 
 const CadastroPaciente = ({ onSalvar, fecharModal }) => {
   const [nome, setNome] = useState('');
@@ -21,7 +22,7 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
   const [estado, setEstado] = useState('');
   const [numeroResidencia, setNumeroResidencia] = useState('');
   const [email, setEmail] = useState('');
-  const [telefone, setTelefone] = useState('');
+  const [telefones, setTelefones] = useState(['']);
   const [temProntuarioAntigo, setTemProntuarioAntigo] = useState(false);
   const [prontuarioAntigo, setProntuarioAntigo] = useState('');
   const [localizacaoProntuarioAntigo, setLocalizacaoProntuarioAntigo] = useState('');
@@ -30,6 +31,7 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
   const [mostrarAlerta, setMostrarAlerta] = useState(false);
   const [naoPossuiRg, setNaoPossuiRg] = useState(false);
   const [naoPossuiCpf, setNaoPossuiCpf] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const styles = useStyles();
   const auth = getAuth();
@@ -67,6 +69,64 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
     setCpfLimpo(cpfLimpo);
   };
 
+  const formatTelefone = (telefone) => {
+    const cleaned = telefone.replace(/\D/g, '');
+    if (cleaned.length === 10) {
+      return cleaned.replace(/(\d{2})(\d{4})(\d{4})/, '($1)$2-$3');
+    } else if (cleaned.length === 11) {
+      return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1)$2-$3');
+    }
+    return telefone;
+  };
+
+  const handleTelefoneChange = (index, value) => {
+    const formatted = formatTelefone(value);
+    const newTelefones = [...telefones];
+    newTelefones[index] = formatted;
+    setTelefones(newTelefones);
+  };
+
+  const handleAddTelefone = () => {
+    setTelefones([...telefones, '']);
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!nome) {
+      newErrors.nome = "Nome é obrigatório";
+    }
+    if (!email) {
+      newErrors.email = "E-mail é obrigatório";
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = "Formato de e-mail inválido";
+    }
+    if (!telefones.some(tel => tel)) {
+      newErrors.telefone = "Telefone é obrigatório";
+    } else {
+      telefones.forEach(telefone => {
+        if (telefone && !/^\(\d{2}\)\d{4,5}-\d{4}$/.test(telefone)) {
+          newErrors.telefone = "Formato de telefone inválido";
+        }
+      });
+    }
+    if (!endereco) {
+      newErrors.endereco = "Endereço é obrigatório";
+    }
+    if (!cep) {
+      newErrors.cep = "CEP é obrigatório";
+    }
+    if (!numeroResidencia) {
+      newErrors.numeroResidencia = "Número da residência é obrigatório";
+    }
+    if (!dataNascimento) {
+      newErrors.dataNascimento = "Data de nascimento é obrigatória";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const exibirMensagemAlerta = (tipo, texto) => {
     setMensagemAlerta({ tipo, texto });
     setMostrarAlerta(true);
@@ -92,8 +152,8 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
   const cadastrarPaciente = async () => {
     if (isSubmitting) return;
 
-    if (!nome || (!cpf && !naoPossuiCpf) || (!rg && !naoPossuiRg) || !endereco || !cep || !numeroResidencia || !email || !telefone || !dataNascimento) {
-      exibirMensagemAlerta("warning", "Por favor, preencha todos os campos.");
+    if (!validateForm()) {
+      exibirMensagemAlerta("warning", "Por favor, preencha todos os campos corretamente.");
       return;
     }
 
@@ -129,7 +189,7 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
         cep,
         numeroResidencia,
         email,
-        telefone,
+        telefone: telefones.join(', '),
         numeroProntuario: prontuarioFormatado
       };
 
@@ -162,7 +222,7 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
       setEstado('');
       setNumeroResidencia('');
       setEmail('');
-      setTelefone('');
+      setTelefones(['']);
       setTemProntuarioAntigo(false);
       setProntuarioAntigo('');
       setLocalizacaoProntuarioAntigo('');
@@ -189,19 +249,49 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
       )}
       <Box component="form" sx={styles.formContainer} noValidate autoComplete="off">
         <Typography variant="h6" gutterBottom>Dados do Paciente</Typography>
-        <TextField fullWidth label="Nome completo" value={nome} onChange={(e) => setNome(e.target.value)} margin="normal" variant="outlined" />
-        
+        <TextField
+          fullWidth
+          label="Nome completo"
+          value={nome}
+          onChange={(e) => setNome(e.target.value)}
+          margin="normal"
+          variant="outlined"
+          error={!!errors.nome}
+          helperText={errors.nome}
+        />
+
         <FormControlLabel
           control={<Checkbox checked={naoPossuiCpf} onChange={(e) => setNaoPossuiCpf(e.target.checked)} />}
           label="Não possui CPF"
         />
-        <TextField fullWidth label="CPF" value={cpf} onChange={handleChangeCPF} margin="normal" variant="outlined" inputProps={{ maxLength: 14 }} disabled={naoPossuiCpf} />
-        
+        <TextField
+          fullWidth
+          label="CPF"
+          value={cpf}
+          onChange={handleChangeCPF}
+          margin="normal"
+          variant="outlined"
+          inputProps={{ maxLength: 14 }}
+          disabled={naoPossuiCpf}
+          error={!!errors.cpf}
+          helperText={errors.cpf}
+        />
+
         <FormControlLabel
           control={<Checkbox checked={naoPossuiRg} onChange={(e) => setNaoPossuiRg(e.target.checked)} />}
           label="Não possui RG"
         />
-        <TextField fullWidth label="RG" value={rg} onChange={(e) => setRg(e.target.value)} margin="normal" variant="outlined" disabled={naoPossuiRg} />
+        <TextField
+          fullWidth
+          label="RG"
+          value={rg}
+          onChange={(e) => setRg(e.target.value)}
+          margin="normal"
+          variant="outlined"
+          disabled={naoPossuiRg}
+          error={!!errors.rg}
+          helperText={errors.rg}
+        />
 
         <FormControl fullWidth margin="normal">
           <InputLabel id="sexo-biologico-label">Sexo Biológico</InputLabel>
@@ -230,31 +320,142 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
           </Select>
         </FormControl>
 
-        <TextField fullWidth label="Data de Nascimento" type="date" InputLabelProps={{ shrink: true }} value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)} margin="normal" variant="outlined" />
+        <TextField
+          fullWidth
+          label="Data de Nascimento"
+          type="date"
+          InputLabelProps={{ shrink: true }}
+          value={dataNascimento}
+          onChange={(e) => setDataNascimento(e.target.value)}
+          margin="normal"
+          variant="outlined"
+          error={!!errors.dataNascimento}
+          helperText={errors.dataNascimento}
+        />
 
-        <TextField fullWidth label="CEP" value={cep} onBlur={() => buscarEnderecoPorCep(cep)} onChange={(e) => setCep(e.target.value)} margin="normal" variant="outlined" />
-        <TextField fullWidth label="Endereço" value={endereco} onChange={(e) => setEndereco(e.target.value)} margin="normal" variant="outlined" />
-        <TextField fullWidth label="Bairro" value={bairro} onChange={(e) => setBairro(e.target.value)} margin="normal" variant="outlined" />
-        <TextField fullWidth label="Cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} margin="normal" variant="outlined" disabled />
-        <TextField fullWidth label="Estado" value={estado} onChange={(e) => setEstado(e.target.value)} margin="normal" variant="outlined" disabled />
-        <TextField fullWidth label="Número da Residência" value={numeroResidencia} onChange={(e) => setNumeroResidencia(e.target.value)} margin="normal" variant="outlined" />
+        <TextField
+          fullWidth
+          label="CEP"
+          value={cep}
+          onBlur={() => buscarEnderecoPorCep(cep)}
+          onChange={(e) => setCep(e.target.value)}
+          margin="normal"
+          variant="outlined"
+          error={!!errors.cep}
+          helperText={errors.cep}
+        />
+        <TextField
+          fullWidth
+          label="Endereço"
+          value={endereco}
+          onChange={(e) => setEndereco(e.target.value)}
+          margin="normal"
+          variant="outlined"
+          error={!!errors.endereco}
+          helperText={errors.endereco}
+        />
+        <TextField
+          fullWidth
+          label="Bairro"
+          value={bairro}
+          onChange={(e) => setBairro(e.target.value)}
+          margin="normal"
+          variant="outlined"
+        />
+        <TextField
+          fullWidth
+          label="Cidade"
+          value={cidade}
+          onChange={(e) => setCidade(e.target.value)}
+          margin="normal"
+          variant="outlined"
+          disabled
+        />
+        <TextField
+          fullWidth
+          label="Estado"
+          value={estado}
+          onChange={(e) => setEstado(e.target.value)}
+          margin="normal"
+          variant="outlined"
+          disabled
+        />
+        <TextField
+          fullWidth
+          label="Número da Residência"
+          value={numeroResidencia}
+          onChange={(e) => setNumeroResidencia(e.target.value)}
+          margin="normal"
+          variant="outlined"
+          error={!!errors.numeroResidencia}
+          helperText={errors.numeroResidencia}
+        />
 
-        <TextField fullWidth label="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} margin="normal" variant="outlined" />
-        <TextField fullWidth label="Telefone" value={telefone} onChange={(e) => setTelefone(e.target.value)} margin="normal" variant="outlined" />
+        <TextField
+          fullWidth
+          label="E-mail"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          margin="normal"
+          variant="outlined"
+          error={!!errors.email}
+          helperText={errors.email}
+        />
+
+        {telefones.map((telefone, index) => (
+          <TextField
+            key={index}
+            fullWidth
+            margin="normal"
+            label={`Telefone ${index + 1}`}
+            value={telefone}
+            onChange={(e) => handleTelefoneChange(index, e.target.value)}
+            variant="outlined"
+            error={!!errors.telefone}
+            helperText={errors.telefone}
+          />
+        ))}
+        <Box display="flex" alignItems="center" marginTop={2}>
+          <IconButton color="primary" onClick={handleAddTelefone}>
+            <AddCircleIcon />
+          </IconButton>
+          <Typography>Possui mais de um telefone?</Typography>
+        </Box>
 
         <FormControlLabel
           control={<Checkbox checked={temProntuarioAntigo} onChange={(e) => setTemProntuarioAntigo(e.target.checked)} />}
           label="Possui prontuário antigo?"
         />
-        
+
         {temProntuarioAntigo && (
           <>
-            <TextField fullWidth label="Prontuário Antigo" value={prontuarioAntigo} onChange={(e) => setProntuarioAntigo(e.target.value)} margin="normal" variant="outlined" />
-            <TextField fullWidth label="Localização do Prontuário Antigo" value={localizacaoProntuarioAntigo} onChange={(e) => setLocalizacaoProntuarioAntigo(e.target.value)} margin="normal" variant="outlined" />
+            <TextField
+              fullWidth
+              label="Prontuário Antigo"
+              value={prontuarioAntigo}
+              onChange={(e) => setProntuarioAntigo(e.target.value)}
+              margin="normal"
+              variant="outlined"
+            />
+            <TextField
+              fullWidth
+              label="Localização do Prontuário Antigo"
+              value={localizacaoProntuarioAntigo}
+              onChange={(e) => setLocalizacaoProntuarioAntigo(e.target.value)}
+              margin="normal"
+              variant="outlined"
+            />
           </>
         )}
 
-        <Button fullWidth variant="contained" color="primary" onClick={cadastrarPaciente} sx={styles.submitButton} disabled={isSubmitting}>
+        <Button
+          fullWidth
+          variant="contained"
+          color="primary"
+          onClick={cadastrarPaciente}
+          sx={styles.submitButton}
+          disabled={isSubmitting}
+        >
           {isSubmitting ? 'Cadastrando...' : 'Cadastrar'}
         </Button>
       </Box>

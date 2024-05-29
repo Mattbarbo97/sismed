@@ -21,6 +21,7 @@ import {
     Typography,
     FormControlLabel,
     Checkbox,
+    Pagination,
 } from "@mui/material";
 import {
     Add as AddIcon,
@@ -64,6 +65,8 @@ const PacientesCadastrados = () => {
     const [errors, setErrors] = useState({});
     const [telefones, setTelefones] = useState(['']);
     const [contadorPacientes, setContadorPacientes] = useState(0);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 50;
     const styles = useStyles();
 
     useEffect(() => {
@@ -137,6 +140,7 @@ const PacientesCadastrados = () => {
 
     const handleSearchChange = (event) => {
         setTermoPesquisa(event.target.value);
+        setCurrentPage(1);
     };
 
     const handleEdit = (paciente) => {
@@ -263,6 +267,25 @@ const PacientesCadastrados = () => {
 
     const tableHead = ["Nome", "E-mail", "CPF", "Gênero", "Telefone", "Ações"];
 
+    const filteredPacientes = pacientes.filter((paciente) => {
+        const searchLower = termoPesquisa.toLowerCase();
+        return (
+            (paciente.nome && paciente.nome.toLowerCase().includes(searchLower)) ||
+            (paciente.email && paciente.email.toLowerCase().includes(searchLower)) ||
+            (paciente.cpf && paciente.cpf.includes(searchLower))
+        );
+    });
+
+    const pageCount = Math.ceil(filteredPacientes.length / itemsPerPage);
+    const currentItems = filteredPacientes.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
+    const handlePageChange = (event, value) => {
+        setCurrentPage(value);
+    };
+
     if (loading) {
         return (
             <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
@@ -319,35 +342,34 @@ const PacientesCadastrados = () => {
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {pacientes
-                                    .filter((paciente) => {
-                                        const searchLower = termoPesquisa.toLowerCase();
-                                        return (
-                                            (paciente.nome && paciente.nome.toLowerCase().includes(searchLower)) ||
-                                            (paciente.email && paciente.email.toLowerCase().includes(searchLower)) ||
-                                            (paciente.cpf && paciente.cpf.includes(searchLower))
-                                        );
-                                    })
-                                    .map((paciente, index) => (
-                                        <TableRow key={index}>
-                                            <TableCell>{paciente.nome}</TableCell>
-                                            <TableCell>{paciente.email}</TableCell>
-                                            <TableCell>{formatarCPF(paciente.cpf) || 'N/A'}</TableCell>
-                                            <TableCell>{paciente.genero}</TableCell>
-                                            <TableCell>{paciente.telefone}</TableCell>
-                                            <TableCell>
-                                                <AcoesPaciente
-                                                    paciente={paciente}
-                                                    onEdit={handleEdit}
-                                                    onDelete={handleDelete}
-                                                    onView={handleView}
-                                                />
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
+                                {currentItems.map((paciente, index) => (
+                                    <TableRow key={index}>
+                                        <TableCell>{paciente.nome}</TableCell>
+                                        <TableCell>{paciente.email}</TableCell>
+                                        <TableCell>{formatarCPF(paciente.cpf) || 'N/A'}</TableCell>
+                                        <TableCell>{paciente.genero}</TableCell>
+                                        <TableCell>{paciente.telefone}</TableCell>
+                                        <TableCell>
+                                            <AcoesPaciente
+                                                paciente={paciente}
+                                                onEdit={handleEdit}
+                                                onDelete={handleDelete}
+                                                onView={handleView}
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
                             </TableBody>
                         </Table>
                     </TableContainer>
+                    <Box display="flex" justifyContent="center" marginTop="2rem">
+                        <Pagination
+                            count={pageCount}
+                            page={currentPage}
+                            onChange={handlePageChange}
+                            color="primary"
+                        />
+                    </Box>
 
                     {/* Modal para adicionar novo paciente */}
                     <Dialog open={modalCadastroAberto} onClose={handleFecharModalCadastro} fullWidth maxWidth="md">

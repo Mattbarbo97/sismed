@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+ // eslint-disable-next-line
 import { getFirestore, collection, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../firebase';
 import MenuPrincipal from '../../menu/MenuPrincipal'; // Importar o menu principal

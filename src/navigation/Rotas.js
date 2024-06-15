@@ -10,6 +10,8 @@ import ProntuarioEletronico from '../components/menu/prontuarios/CriarProntuario
 import GerenciamentoFuncoes from '../components/usuarios/GerenciamentoFuncoes';
 import Agendamentos from '../components/menu/agendamentos/Agendamentos';
 import PrintableDocument from '../components/menu/prontuarios/PrintableDocument';
+import GestaoHorario from '../components/menu/agendamentos/GestaoHorario';
+import VerificarAgendamentos from '../components/menu/agendamentos/VerificarAgendamentos';
 
 function Rotas() {
   return (
@@ -24,6 +26,8 @@ function Rotas() {
       <Route path="/gerenciar-funcoes" element={<GerenciamentoFuncoes />} />
       <Route path="/agendamentos" element={<Agendamentos />} />
       <Route path="/printable-document" element={<PrintableDocument />} />
+      <Route path="/gestao-horario" element={<GestaoHorario />} />
+      <Route path="//verificar-agendamentos" element={<VerificarAgendamentos />} />
       {/* Outras rotas conforme necessário */}
     </Routes>
   );

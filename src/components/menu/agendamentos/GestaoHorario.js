@@ -16,7 +16,7 @@ import {
   CardContent,
   FormControlLabel,
   Switch
-} from '@mui/material'; // Corrigido aqui
+} from '@mui/material';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import format from 'date-fns/format';
 import parse from 'date-fns/parse';
@@ -24,8 +24,8 @@ import startOfWeek from 'date-fns/startOfWeek';
 import getDay from 'date-fns/getDay';
 import addDays from 'date-fns/addDays';
 import addYears from 'date-fns/addYears';
-import MenuPrincipal from '../../menu/MenuPrincipal'; // Importar o menu principal
-import './GestaoHorario.css'; // Importar o CSS personalizado
+import MenuPrincipal from '../../menu/MenuPrincipal';
+import './GestaoHorario.css';
 
 const locales = {
   'pt-BR': require('date-fns/locale/pt-BR'),
@@ -124,7 +124,8 @@ const GestaoHorario = () => {
     let dataAtual = dataInicial;
     while (dataAtual <= dataFinal) {
       Object.keys(horarios).forEach((dia) => {
-        eventos.push(...gerarEventosParaDia(horarios[dia], dataAtual, profissionalNome, dia));
+        const novosEventos = gerarEventosParaDia(horarios[dia], dataAtual, profissionalNome, Number(dia));
+        eventos.push(...novosEventos);
       });
       dataAtual = addDays(dataAtual, 1);
     }

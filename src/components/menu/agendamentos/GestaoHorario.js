@@ -123,8 +123,9 @@ const GestaoHorario = () => {
 
     let dataAtual = dataInicial;
     while (dataAtual <= dataFinal) {
+      const currentData = new Date(dataAtual); // Criação de uma nova instância da dataAtual
       Object.keys(horarios).forEach((dia) => {
-        const novosEventos = gerarEventosParaDia(horarios[dia], dataAtual, profissionalNome, Number(dia));
+        const novosEventos = gerarEventosParaDia(horarios[dia], currentData, profissionalNome, Number(dia));
         eventos.push(...novosEventos);
       });
       dataAtual = addDays(dataAtual, 1);

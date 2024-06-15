@@ -1,0 +1,27 @@
+.container {
+    padding: 20px;
+  }
+  
+  .header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .dropdown-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  
+  .select-field {
+    width: 300px;
+  }
+  
+  .horario-card {
+    margin-bottom: 20px;
+  }
+  
+  .calendar {
+    height: 500px;
+  }
+  

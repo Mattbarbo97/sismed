@@ -12,9 +12,7 @@ import {
   Card,
   CardContent,
   CardActions,
-  Button,
-    // eslint-disable-next-line
-  List
+  Button
 } from '@mui/material';
 import { format, isValid, isAfter } from 'date-fns';
 import './VerificarAgendamentos.css'; // Importar o CSS personalizado
@@ -28,7 +26,6 @@ const VerificarAgendamentos = () => {
   useEffect(() => {
     const fetchMedicos = async () => {
       try {
-        const db = getFirestore();
         const medicosSnapshot = await getDocs(collection(db, 'usuarios_cadastrados'));
         const medicosList = medicosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setMedicos(medicosList);
@@ -44,12 +41,12 @@ const VerificarAgendamentos = () => {
     if (medicoSelecionado) {
       const fetchAgendamentos = async () => {
         try {
-          const db = getFirestore();
           const querySnapshot = await getDocs(collection(db, 'agendamentos'));
           const agendamentosList = [];
           querySnapshot.forEach((doc) => {
             const data = doc.data();
-            if (data.ProfissionalId === medicoSelecionado && isAfter(new Date(data.data.toDate ? data.data.toDate() : data.data), new Date())) {
+            const agendamentoData = data.data.toDate ? data.data.toDate() : data.data;
+            if (data.ProfissionalId === medicoSelecionado && isAfter(new Date(agendamentoData), new Date())) {
               agendamentosList.push({ id: doc.id, ...data });
             }
           });
@@ -131,7 +128,7 @@ const VerificarAgendamentos = () => {
             <Typography variant="h6" className="invalid-date" align="center">Data inválida: {diaSelecionado}</Typography>
           )}
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            {agendamentosAgrupados[diaSelecionado].map((agendamento) => (
+            {agendamentosAgrupados[diaSelecionado]?.map((agendamento) => (
               <Card key={agendamento.id} variant="outlined" className={`agendamento-card status-${agendamento.status || 'pendente'}`} sx={{ width: '80%', marginBottom: 1 }}>
                 <CardContent className="card-content">
                   <Typography variant="subtitle1">{`Paciente: ${agendamento.pacienteNome || 'N/A'}`}</Typography>

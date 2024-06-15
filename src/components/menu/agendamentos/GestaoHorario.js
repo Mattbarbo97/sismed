@@ -94,11 +94,11 @@ const GestaoHorario = () => {
   }, [ProfissionalSelecionado]);
 
   useEffect(() => {
-    if (ProfissionalSelecionado) {
-      const eventosGerados = gerarEventos();
+    if (ProfissionalSelecionado && horarios) {
+      const eventosGerados = gerarEventos(horarios, ProfissionalSelecionado);
       setEventos(eventosGerados);
     }
-  }, [horarios]);
+  }, [horarios, ProfissionalSelecionado]);
 
   const handleSave = async () => {
     if (ProfissionalSelecionado) {
@@ -129,7 +129,7 @@ const GestaoHorario = () => {
     }));
   };
 
-  const gerarEventos = () => {
+  const gerarEventos = (horarios, profissionalSelecionado) => {
     const eventos = [];
     const dataInicial = new Date();
     const dataFinal = addYears(dataInicial, 1);
@@ -149,7 +149,7 @@ const GestaoHorario = () => {
             const eventoFim = new Date(eventoInicio);
             eventoFim.setHours(horaFimH, horaFimM, 0, 0);
             eventos.push({
-              title: `${profissionais.find(p => p.id === ProfissionalSelecionado).nome} - ${diasDaSemana.find(d => d.value === Number(dia)).label}`,
+              title: `${profissionais.find(p => p.id === profissionalSelecionado).nome} - ${diasDaSemana.find(d => d.value === Number(dia)).label}`,
               start: eventoInicio,
               end: eventoFim,
             });

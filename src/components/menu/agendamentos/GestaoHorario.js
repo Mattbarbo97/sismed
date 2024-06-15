@@ -93,34 +93,39 @@ const GestaoHorario = () => {
     fetchDisponibilidade();
   }, [ProfissionalSelecionado]);
 
+  const gerarEventosParaDia = (horarioDia, dataAtual, profissionalNome, dia) => {
+    const eventos = [];
+    if (horarioDia && horarioDia.active && horarioDia.horaInicio && horarioDia.horaFim) {
+      const [horaInicioH, horaInicioM] = horarioDia.horaInicio.split(':').map(Number);
+      const [horaFimH, horaFimM] = horarioDia.horaFim.split(':').map(Number);
+
+      if (!isNaN(horaInicioH) && !isNaN(horaInicioM) && !isNaN(horaFimH) && !isNaN(horaFimM)) {
+        const eventoInicio = new Date(dataAtual);
+        eventoInicio.setDate(eventoInicio.getDate() + (dia - getDay(eventoInicio)));
+        eventoInicio.setHours(horaInicioH, horaInicioM, 0, 0);
+        const eventoFim = new Date(eventoInicio);
+        eventoFim.setHours(horaFimH, horaFimM, 0, 0);
+        eventos.push({
+          title: `${profissionalNome} - ${diasDaSemana.find(d => d.value === Number(dia)).label}`,
+          start: eventoInicio,
+          end: eventoFim,
+        });
+      }
+    }
+    return eventos;
+  };
+
   const gerarEventos = useCallback((horarios, profissionalSelecionado) => {
     const eventos = [];
     const dataInicial = new Date();
     const dataFinal = addYears(dataInicial, 1);
+    const profissionalNome = profissionais.find(p => p.id === profissionalSelecionado)?.nome || '';
 
     let dataAtual = dataInicial;
     while (dataAtual <= dataFinal) {
       Object.keys(horarios).forEach((dia) => {
-        const horarioDia = horarios[dia];
-        if (horarioDia && horarioDia.active && horarioDia.horaInicio && horarioDia.horaFim) {
-          const [horaInicioH, horaInicioM] = horarioDia.horaInicio.split(':').map(Number);
-          const [horaFimH, horaFimM] = horarioDia.horaFim.split(':').map(Number);
-
-          if (!isNaN(horaInicioH) && !isNaN(horaInicioM) && !isNaN(horaFimH) && !isNaN(horaFimM)) {
-            const eventoInicio = new Date(dataAtual);
-            eventoInicio.setDate(eventoInicio.getDate() + (dia - getDay(eventoInicio)));
-            eventoInicio.setHours(horaInicioH, horaInicioM, 0, 0);
-            const eventoFim = new Date(eventoInicio);
-            eventoFim.setHours(horaFimH, horaFimM, 0, 0);
-            eventos.push({
-              title: `${profissionais.find(p => p.id === profissionalSelecionado).nome} - ${diasDaSemana.find(d => d.value === Number(dia)).label}`,
-              start: eventoInicio,
-              end: eventoFim,
-            });
-          }
-        }
+        eventos.push(...gerarEventosParaDia(horarios[dia], dataAtual, profissionalNome, dia));
       });
-
       dataAtual = addDays(dataAtual, 1);
     }
 

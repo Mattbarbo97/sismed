@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 // eslint-disable-next-line
 import { getFirestore, doc, collection, getDocs, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../../firebase';
@@ -16,7 +16,7 @@ import {
   CardContent,
   FormControlLabel,
   Switch
-} from '@mui/material';
+} from '@mui.material';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import format from 'date-fns/format';
 import parse from 'date-fns/parse';
@@ -93,43 +93,7 @@ const GestaoHorario = () => {
     fetchDisponibilidade();
   }, [ProfissionalSelecionado]);
 
-  useEffect(() => {
-    if (ProfissionalSelecionado && horarios) {
-      const eventosGerados = gerarEventos(horarios, ProfissionalSelecionado);
-      setEventos(eventosGerados);
-    }
-  }, [horarios, ProfissionalSelecionado]);
-
-  const handleSave = async () => {
-    if (ProfissionalSelecionado) {
-      const docRef = doc(db, 'usuarios_cadastrados', ProfissionalSelecionado);
-      await updateDoc(docRef, { disponibilidade: { horarios } });
-      alert('Horários atualizados com sucesso!');
-    }
-  };
-
-  const handleHorarioChange = (dia, event) => {
-    const { name, value } = event.target;
-    setHorarios((prev) => ({
-      ...prev,
-      [dia]: {
-        ...prev[dia],
-        [name]: value,
-      },
-    }));
-  };
-
-  const handleActiveChange = (dia) => {
-    setHorarios((prev) => ({
-      ...prev,
-      [dia]: {
-        ...prev[dia],
-        active: !prev[dia].active,
-      },
-    }));
-  };
-
-  const gerarEventos = (horarios, profissionalSelecionado) => {
+  const gerarEventos = useCallback((horarios, profissionalSelecionado) => {
     const eventos = [];
     const dataInicial = new Date();
     const dataFinal = addYears(dataInicial, 1);
@@ -161,6 +125,42 @@ const GestaoHorario = () => {
     }
 
     return eventos;
+  }, [profissionais]);
+
+  useEffect(() => {
+    if (ProfissionalSelecionado && horarios) {
+      const eventosGerados = gerarEventos(horarios, ProfissionalSelecionado);
+      setEventos(eventosGerados);
+    }
+  }, [horarios, ProfissionalSelecionado, gerarEventos]);
+
+  const handleSave = async () => {
+    if (ProfissionalSelecionado) {
+      const docRef = doc(db, 'usuarios_cadastrados', ProfissionalSelecionado);
+      await updateDoc(docRef, { disponibilidade: { horarios } });
+      alert('Horários atualizados com sucesso!');
+    }
+  };
+
+  const handleHorarioChange = (dia, event) => {
+    const { name, value } = event.target;
+    setHorarios((prev) => ({
+      ...prev,
+      [dia]: {
+        ...prev[dia],
+        [name]: value,
+      },
+    }));
+  };
+
+  const handleActiveChange = (dia) => {
+    setHorarios((prev) => ({
+      ...prev,
+      [dia]: {
+        ...prev[dia],
+        active: !prev[dia].active,
+      },
+    }));
   };
 
   return (

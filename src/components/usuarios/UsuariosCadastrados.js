@@ -408,7 +408,7 @@ const UsuariosCadastrados = () => {
         }
         setLoading(false);
     };
-
+// eslint-disable-next-line
     const handleSalvarUsuario = async (dadosUsuario) => {
         try {
             console.log(dadosUsuario);

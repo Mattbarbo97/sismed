@@ -31,6 +31,7 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
   const [mostrarAlerta, setMostrarAlerta] = useState(false);
   const [naoPossuiRg, setNaoPossuiRg] = useState(false);
   const [naoPossuiCpf, setNaoPossuiCpf] = useState(false);
+  const [pacienteFalecido, setPacienteFalecido] = useState(false);
   const [errors, setErrors] = useState({});
 
   const styles = useStyles();
@@ -190,7 +191,8 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
         numeroResidencia,
         email,
         telefone: telefones.join(', '),
-        numeroProntuario: prontuarioFormatado
+        numeroProntuario: prontuarioFormatado,
+        pacienteFalecido // Adicionando o campo pacienteFalecido
       };
 
       if (temProntuarioAntigo) {
@@ -228,6 +230,7 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
       setLocalizacaoProntuarioAntigo('');
       setNaoPossuiRg(false);
       setNaoPossuiCpf(false);
+      setPacienteFalecido(false);
 
       // Atualiza a página após o cadastro
       window.location.reload();
@@ -422,10 +425,16 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
           <Typography>Possui mais de um telefone?</Typography>
         </Box>
 
-        <FormControlLabel
-          control={<Checkbox checked={temProntuarioAntigo} onChange={(e) => setTemProntuarioAntigo(e.target.checked)} />}
-          label="Possui prontuário antigo?"
-        />
+        <Box display="flex" alignItems="center" marginTop={2}>
+          <FormControlLabel
+            control={<Checkbox checked={temProntuarioAntigo} onChange={(e) => setTemProntuarioAntigo(e.target.checked)} />}
+            label="Possui prontuário antigo?"
+          />
+          <FormControlLabel
+            control={<Checkbox checked={pacienteFalecido} onChange={(e) => setPacienteFalecido(e.target.checked)} />}
+            label="Paciente falecido"
+          />
+        </Box>
 
         {temProntuarioAntigo && (
           <>

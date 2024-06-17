@@ -18,10 +18,12 @@ import {
     TableRow,
     TextField,
     Typography,
-    // eslint-disable-next-line
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
     Checkbox,
-    // eslint-disable-next-line
-    FormControlLabel,
+    FormControlLabel
 } from "@mui/material";
 import {
     Add as AddIcon,
@@ -29,7 +31,7 @@ import {
     Edit as EditIcon,
     Search as SearchIcon,
     Visibility as VisibilityIcon,
-    Refresh as RefreshIcon, // Adicione o ícone de refresh para reativar
+    Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import { ThemeProvider } from "@mui/material/styles";
 import {
@@ -74,25 +76,72 @@ const ModalDetalhesUsuario = ({
     onSave,
 }) => {
     const [editandoUsuario, setEditandoUsuario] = useState(usuario);
-    // eslint-disable-next-line
-    const [identificacaoProfissionalAtiva, setIdentificacaoProfissionalAtiva] = useState(false);
+    const [especialidades, setEspecialidades] = useState([]);
+    const [funcoes, setFuncoes] = useState([]);
+    const [possuiEspecialidade, setPossuiEspecialidade] = useState(false);
+    const [especialidadeMultipla, setEspecialidadeMultipla] = useState(false);
 
     useEffect(() => {
-        setEditandoUsuario(usuario); // Atualiza quando o usuário muda
-        setIdentificacaoProfissionalAtiva(usuario.identificacaoProfissional !== null); // Define o estado inicial da checkbox com base no valor do usuário
+        const fetchEspecialidades = async () => {
+            const db = getFirestore();
+            const especialidadesSnapshot = await getDocs(collection(db, "dbo.especialidades"));
+            const especialidadesList = especialidadesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setEspecialidades(especialidadesList);
+        };
+
+        const fetchFuncoes = async () => {
+            const db = getFirestore();
+            const funcoesSnapshot = await getDocs(collection(db, "dbo.usuario"));
+            const funcoesList = funcoesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setFuncoes(funcoesList);
+        };
+
+        fetchEspecialidades();
+        fetchFuncoes();
+        setEditandoUsuario(usuario);
+        setPossuiEspecialidade(usuario.especialidades && usuario.especialidades.length > 0);
+        setEspecialidadeMultipla(usuario.especialidades && usuario.especialidades.length > 1);
     }, [usuario]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setEditandoUsuario((prev) => ({ ...prev, [name]: value }));
     };
-    // eslint-disable-next-line
+
     const handleCheckboxChange = (e) => {
         const checked = e.target.checked;
-        setIdentificacaoProfissionalAtiva(checked);
+        setPossuiEspecialidade(checked);
         if (!checked) {
-            setEditandoUsuario((prev) => ({ ...prev, identificacaoProfissional: null }));
+            setEditandoUsuario((prev) => ({ ...prev, especialidades: [] }));
         }
+    };
+
+    const handleEspecialidadeMultiplaChange = (e) => {
+        const checked = e.target.checked;
+        setEspecialidadeMultipla(checked);
+    };
+
+    const addEspecialidade = () => {
+        setEditandoUsuario((prev) => ({
+            ...prev,
+            especialidades: [...(prev.especialidades || []), ""]
+        }));
+    };
+
+    const handleEspecialidadeChange = (index, value) => {
+        setEditandoUsuario((prev) => {
+            const updatedEspecialidades = [...prev.especialidades];
+            updatedEspecialidades[index] = value;
+            return { ...prev, especialidades: updatedEspecialidades };
+        });
+    };
+
+    const removeEspecialidade = (index) => {
+        setEditandoUsuario((prev) => {
+            const updatedEspecialidades = [...prev.especialidades];
+            updatedEspecialidades.splice(index, 1);
+            return { ...prev, especialidades: updatedEspecialidades };
+        });
     };
 
     const handleClose = () => {
@@ -159,15 +208,20 @@ const ModalDetalhesUsuario = ({
                             value={editandoUsuario?.email || ""}
                             onChange={handleChange}
                         />
-                        <TextField
-                            margin="dense"
-                            label="Função"
-                            type="text"
-                            fullWidth
-                            name="funcao"
-                            value={editandoUsuario?.funcao || ""}
-                            onChange={handleChange}
-                        />
+                        <FormControl fullWidth margin="normal">
+                            <InputLabel>Função</InputLabel>
+                            <Select
+                                value={editandoUsuario?.funcao || ""}
+                                onChange={handleChange}
+                                name="funcao"
+                            >
+                                {funcoes.map((func) => (
+                                    <MenuItem key={func.id} value={func.nome}>
+                                        {func.nome}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
                         <TextField
                             margin="dense"
                             label="CEP"
@@ -222,6 +276,50 @@ const ModalDetalhesUsuario = ({
                             value={editandoUsuario?.telefone || ""}
                             onChange={handleChange}
                         />
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={possuiEspecialidade}
+                                    onChange={handleCheckboxChange}
+                                />
+                            }
+                            label="Possui especialidade?"
+                        />
+                        {possuiEspecialidade && (
+                            <div>
+                                {editandoUsuario.especialidades &&
+                                    editandoUsuario.especialidades.map((especialidade, index) => (
+                                        <Box key={index} display="flex" alignItems="center">
+                                            <FormControl fullWidth margin="normal">
+                                                <InputLabel>Especialidade</InputLabel>
+                                                <Select
+                                                    value={especialidade}
+                                                    onChange={(e) => handleEspecialidadeChange(index, e.target.value)}
+                                                >
+                                                    {especialidades.map((esp) => (
+                                                        <MenuItem key={esp.id} value={esp.nome}>
+                                                            {esp.nome}
+                                                        </MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                            <IconButton onClick={() => removeEspecialidade(index)}>
+                                                <DeleteIcon />
+                                            </IconButton>
+                                        </Box>
+                                    ))}
+                                <Button onClick={addEspecialidade}>Adicionar Especialidade</Button>
+                                <FormControlLabel
+                                    control={
+                                        <Checkbox
+                                            checked={especialidadeMultipla}
+                                            onChange={handleEspecialidadeMultiplaChange}
+                                        />
+                                    }
+                                    label="Possui mais de uma especialidade?"
+                                />
+                            </div>
+                        )}
                     </>
                 ) : (
                     <>
@@ -237,9 +335,10 @@ const ModalDetalhesUsuario = ({
                         <Typography>Cidade: {usuario?.cidade}</Typography>
                         <Typography>Estado: {usuario?.estado}</Typography>
                         <Typography>Telefone: {usuario?.telefone}</Typography>
-                        {usuario?.especialidade && (
-                            <Typography>Especialidade: {usuario.especialidade}</Typography>
-                        )}
+                        {usuario?.especialidades &&
+                            usuario.especialidades.map((especialidade, index) => (
+                                <Typography key={index}>Especialidade: {especialidade}</Typography>
+                            ))}
                     </>
                 )}
             </DialogContent>
@@ -310,31 +409,22 @@ const UsuariosCadastrados = () => {
         setLoading(false);
     };
 
-    // No componente pai
-    // eslint-disable-next-line
     const handleSalvarUsuario = async (dadosUsuario) => {
         try {
-            // Aqui vai a lógica para salvar os dados do Colaborador
-            // Por exemplo, chamar uma API ou adicionar ao Firestore
-            console.log(dadosUsuario); // Apenas para depuração
-            // Atualiza a lista de colaboradores
+            console.log(dadosUsuario);
             fetchUsuarios();
-            // Fechar o modal após o salvamento ser bem-sucedido
             handleFecharModalCadastro();
         } catch (error) {
             console.error("Erro ao salvar Colaborador:", error);
-            // Aqui você pode definir como quer tratar os erros
-            // Por exemplo, mostrar uma mensagem para o Colaborador
         }
     };
 
-    //modal de cadastro
     const [modalCadastroAberto, setModalCadastroAberto] = useState(false);
-    // Função para abrir o modal de CadastroUsuario
+
     const handleAbrirModalCadastro = () => {
         setModalCadastroAberto(true);
     };
-    // Função para fechar o modal de CadastroUsuario
+
     const handleFecharModalCadastro = () => {
         setModalCadastroAberto(false);
     };
@@ -423,6 +513,7 @@ const UsuariosCadastrados = () => {
                 cpf: usuarioEditado.cpf,
                 funcao: usuarioEditado.funcao,
                 identificacaoProfissional: usuarioEditado.identificacaoProfissional || null,
+                especialidades: usuarioEditado.especialidades || [],
             });
             setUsuarios(
                 usuarios.map((user) =>
@@ -470,12 +561,10 @@ const UsuariosCadastrados = () => {
                         alignItems="left"
                         marginBottom="2rem"
                     >
-                        {/* Título alinhado à esquerda */}
                         <Typography variant="h4" gutterBottom>
                             Colaboradores Cadastrados
                         </Typography>
 
-                        {/* Caixa para a pesquisa e o botão, alinhados à direita */}
                         <Box display="flex" alignItems="center">
                             <TextField
                                 label="Pesquisar Colaborador"
@@ -496,7 +585,7 @@ const UsuariosCadastrados = () => {
                                         </InputAdornment>
                                     ),
                                 }}
-                                style={{ marginRight: "1rem" }} // Mantém espaço entre a barra de pesquisa e o botão
+                                style={{ marginRight: "1rem" }}
                             />
                             <Button
                                 variant="contained"
@@ -562,11 +651,9 @@ const UsuariosCadastrados = () => {
                                                 {usuario.email}
                                             </TableCell>
                                             <TableCell>{usuario.cpf}</TableCell>
-
                                             <TableCell>
-                                                {usuario.funcao || "Carregando..."} {/* Mostra "Carregando..." enquanto a função está sendo carregada */}
+                                                {usuario.funcao || "Carregando..."}
                                             </TableCell>
-
                                             <TableCell>
                                                 <AcoesUsuario
                                                     usuario={usuario}
@@ -582,19 +669,17 @@ const UsuariosCadastrados = () => {
                         </Table>
                     </TableContainer>
 
-                    {/* cadastro de usuario do modal */}
                     <Dialog
                         open={modalCadastroAberto}
                         onClose={handleFecharModalCadastro}
                         fullWidth
-                        maxWidth="md" // ou outro tamanho que você preferir
+                        maxWidth="md"
                     >
                         <DialogTitle className="DialogTitle">
                             Cadastrar Novo Colaborador
                         </DialogTitle>
 
                         <DialogContent>
-                            {/* Passando a função handleSalvarUsuario como prop para CadastroUsuario */}
                             <CadastroUsuario
                                 atualizarListaColaboradores={fetchUsuarios}
                                 fecharModal={handleFecharModalCadastro}

@@ -325,20 +325,20 @@ function Agendamento() {
                 </Box>
 
                 <FormControl fullWidth margin="normal">
-                  <InputLabel className="input-label">Buscar por...</InputLabel>
+                  <InputLabel className="input-label">Tipo de atendimento</InputLabel>
                   <Select
                     className="select-field"
                     value={tipoSelecao}
-                    label="Buscar por..."
+                    label="Tipo de atendimento"
                     onChange={handleTipoSelecaoChange}
                   >
-                    <MenuItem value="funcao">Função</MenuItem>
+                    <MenuItem value="funcao">Terapias e outros</MenuItem>
                     <MenuItem value="especialidade">Especialidade</MenuItem>
                   </Select>
                 </FormControl>
 
                 <FormControl fullWidth margin="normal">
-                  <InputLabel className="input-label">Função/Especialidade</InputLabel>
+                  <InputLabel className="input-label">Especialidade/Outros</InputLabel>
                   <Select
                     className="select-field"
                     value={opcaoAtendimento}

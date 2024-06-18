@@ -232,7 +232,7 @@ function Agendamento() {
         body: JSON.stringify(googleEvent)
       });
 
-      alert('Agendamento confirmado e adicionado ao Google Calendar!');
+      alert('Agendamento confirmado!');
     } catch (error) {
       console.error('Erro ao confirmar agendamento:', error);
     }

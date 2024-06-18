@@ -24,17 +24,18 @@ import startOfWeek from 'date-fns/startOfWeek';
 import getDay from 'date-fns/getDay';
 import addDays from 'date-fns/addDays';
 import addYears from 'date-fns/addYears';
+import ptBR from 'date-fns/locale/pt-BR'; // Importando o locale em português
 import MenuPrincipal from '../../menu/MenuPrincipal';
 import './GestaoHorario.css';
 
 const locales = {
-  'pt-BR': require('date-fns/locale/pt-BR'),
+  'pt-BR': ptBR,
 };
 
 const localizer = dateFnsLocalizer({
   format,
   parse,
-  startOfWeek,
+  startOfWeek: () => startOfWeek(new Date(), { locale: ptBR }),
   getDay,
   locales,
 });
@@ -93,6 +94,21 @@ const GestaoHorario = () => {
     fetchDisponibilidade();
   }, [ProfissionalSelecionado]);
 
+  const calcularQuantidadeAtendimentos = (horarioDia) => {
+    if (horarioDia && horarioDia.active && horarioDia.horaInicio && horarioDia.horaFim && horarioDia.duracaoAtendimento) {
+      const [horaInicioH, horaInicioM] = horarioDia.horaInicio.split(':').map(Number);
+      const [horaFimH, horaFimM] = horarioDia.horaFim.split(':').map(Number);
+      const inicio = horaInicioH * 60 + horaInicioM;
+      const fim = horaFimH * 60 + horaFimM;
+      const duracao = parseInt(horarioDia.duracaoAtendimento, 10);
+
+      if (!isNaN(inicio) && !isNaN(fim) && !isNaN(duracao) && duracao > 0) {
+        return Math.floor((fim - inicio) / duracao);
+      }
+    }
+    return 0;
+  };
+
   const gerarEventosParaDia = (horarioDia, dataAtual, profissionalNome, dia) => {
     const eventos = [];
     if (horarioDia && horarioDia.active && horarioDia.horaInicio && horarioDia.horaFim) {
@@ -105,8 +121,9 @@ const GestaoHorario = () => {
         eventoInicio.setHours(horaInicioH, horaInicioM, 0, 0);
         const eventoFim = new Date(eventoInicio);
         eventoFim.setHours(horaFimH, horaFimM, 0, 0);
+        const quantidadeAtendimentos = calcularQuantidadeAtendimentos(horarioDia);
         eventos.push({
-          title: `${profissionalNome} - ${diasDaSemana.find(d => d.value === Number(dia)).label}`,
+          title: `${profissionalNome} - ${quantidadeAtendimentos} atendimentos`,
           start: eventoInicio,
           end: eventoFim,
         });
@@ -132,6 +149,7 @@ const GestaoHorario = () => {
     }
 
     return eventos;
+    // eslint-disable-next-line
   }, [profissionais]);
 
   useEffect(() => {
@@ -170,130 +188,153 @@ const GestaoHorario = () => {
     }));
   };
 
+  const CustomEvent = ({ event }) => (
+    <span>{event.title}</span>
+  );
+
   return (
     <Box className="container">
       <MenuPrincipal /> {/* Adicionar o menu principal */}
       <Typography variant="h4" className="header">Gestão de Horários</Typography>
-      <Box className="dropdown-container">
-        <FormControl sx={{ marginBottom: 3 }}>
-          <InputLabel id="Profissional-select-label">Selecione um Profissional</InputLabel>
-          <Select
-            labelId="Profissional-select-label"
-            value={ProfissionalSelecionado}
-            onChange={(e) => setProfissionalSelecionado(e.target.value)}
-            className="select-field"
-          >
-            {profissionais.map((pro) => (
-              <MenuItem key={pro.id} value={pro.id}>{pro.nome}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+      <Box className="content">
+        <Box className="dropdown-container">
+          <FormControl sx={{ marginBottom: 3 }}>
+            <InputLabel id="Profissional-select-label">Selecione um Profissional</InputLabel>
+            <Select
+              labelId="Profissional-select-label"
+              value={ProfissionalSelecionado}
+              onChange={(e) => setProfissionalSelecionado(e.target.value)}
+              className="select-field"
+            >
+              {profissionais.map((pro) => (
+                <MenuItem key={pro.id} value={pro.id}>{pro.nome}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+
+        {ProfissionalSelecionado && (
+          <>
+            <Grid container spacing={2} justifyContent="center">
+              {diasDaSemana.map((dia) => (
+                <Grid item xs={12} md={4} key={dia.value}>
+                  <Card className="horario-card">
+                    <CardContent>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="h6">{dia.label}</Typography>
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              checked={horarios[dia.value].active}
+                              onChange={() => handleActiveChange(dia.value)}
+                              color="primary"
+                            />
+                          }
+                          label="Ativar"
+                        />
+                      </Box>
+                      {horarios[dia.value].active && (
+                        <Grid container spacing={2} sx={{ marginTop: 2 }}>
+                          <Grid item xs={6}>
+                            <TextField
+                              label="Hora de Início"
+                              type="time"
+                              fullWidth
+                              name="horaInicio"
+                              value={horarios[dia.value]?.horaInicio || ''}
+                              onChange={(e) => handleHorarioChange(dia.value, e)}
+                              InputLabelProps={{ shrink: true }}
+                              inputProps={{ step: 300 }}
+                            />
+                          </Grid>
+                          <Grid item xs={6}>
+                            <TextField
+                              label="Hora de Término"
+                              type="time"
+                              fullWidth
+                              name="horaFim"
+                              value={horarios[dia.value]?.horaFim || ''}
+                              onChange={(e) => handleHorarioChange(dia.value, e)}
+                              InputLabelProps={{ shrink: true }}
+                              inputProps={{ step: 300 }}
+                            />
+                          </Grid>
+                          <Grid item xs={6}>
+                            <TextField
+                              label="Início do Almoço"
+                              type="time"
+                              fullWidth
+                              name="inicioAlmoco"
+                              value={horarios[dia.value]?.inicioAlmoco || ''}
+                              onChange={(e) => handleHorarioChange(dia.value, e)}
+                              InputLabelProps={{ shrink: true }}
+                              inputProps={{ step: 300 }}
+                            />
+                          </Grid>
+                          <Grid item xs={6}>
+                            <TextField
+                              label="Fim do Almoço"
+                              type="time"
+                              fullWidth
+                              name="fimAlmoco"
+                              value={horarios[dia.value]?.fimAlmoco || ''}
+                              onChange={(e) => handleHorarioChange(dia.value, e)}
+                              InputLabelProps={{ shrink: true }}
+                              inputProps={{ step: 300 }}
+                            />
+                          </Grid>
+                          <Grid item xs={12}>
+                            <TextField
+                              label="Duração do Atendimento (minutos)"
+                              type="number"
+                              fullWidth
+                              name="duracaoAtendimento"
+                              value={horarios[dia.value]?.duracaoAtendimento || ''}
+                              onChange={(e) => handleHorarioChange(dia.value, e)}
+                            />
+                          </Grid>
+                        </Grid>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+
+            <Box sx={{ marginTop: 3, textAlign: 'center' }}>
+              <Button variant="contained" color="primary" onClick={handleSave}>Salvar Horários</Button>
+            </Box>
+
+            <Box sx={{ height: 500, marginTop: 5 }}>
+              <Calendar
+                localizer={localizer}
+                events={eventos}
+                startAccessor="start"
+                endAccessor="end"
+                style={{ height: 500 }}
+                messages={{
+                  next: "Próximo",
+                  previous: "Anterior",
+                  today: "Hoje",
+                  month: "Mês",
+                  week: "Semana",
+                  day: "Dia",
+                  agenda: "Agenda",
+                  date: "Data",
+                  time: "Hora",
+                  event: "Evento",
+                  noEventsInRange: "Não há eventos nesta faixa de datas.",
+                  showMore: total => `+${total} mais`,
+                }}
+                components={{
+                  event: CustomEvent,
+                }}
+                className="calendar"
+              />
+            </Box>
+          </>
+        )}
       </Box>
-
-      {ProfissionalSelecionado && (
-        <>
-          <Grid container spacing={2}>
-            {diasDaSemana.map((dia) => (
-              <Grid item xs={12} md={4} key={dia.value}>
-                <Card className="horario-card">
-                  <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="h6">{dia.label}</Typography>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={horarios[dia.value].active}
-                            onChange={() => handleActiveChange(dia.value)}
-                            color="primary"
-                          />
-                        }
-                        label="Ativar"
-                      />
-                    </Box>
-                    {horarios[dia.value].active && (
-                      <Grid container spacing={2} sx={{ marginTop: 2 }}>
-                        <Grid item xs={6}>
-                          <TextField
-                            label="Hora de Início"
-                            type="time"
-                            fullWidth
-                            name="horaInicio"
-                            value={horarios[dia.value]?.horaInicio || ''}
-                            onChange={(e) => handleHorarioChange(dia.value, e)}
-                            InputLabelProps={{ shrink: true }}
-                            inputProps={{ step: 300 }}
-                          />
-                        </Grid>
-                        <Grid item xs={6}>
-                          <TextField
-                            label="Hora de Término"
-                            type="time"
-                            fullWidth
-                            name="horaFim"
-                            value={horarios[dia.value]?.horaFim || ''}
-                            onChange={(e) => handleHorarioChange(dia.value, e)}
-                            InputLabelProps={{ shrink: true }}
-                            inputProps={{ step: 300 }}
-                          />
-                        </Grid>
-                        <Grid item xs={6}>
-                          <TextField
-                            label="Início do Almoço"
-                            type="time"
-                            fullWidth
-                            name="inicioAlmoco"
-                            value={horarios[dia.value]?.inicioAlmoco || ''}
-                            onChange={(e) => handleHorarioChange(dia.value, e)}
-                            InputLabelProps={{ shrink: true }}
-                            inputProps={{ step: 300 }}
-                          />
-                        </Grid>
-                        <Grid item xs={6}>
-                          <TextField
-                            label="Fim do Almoço"
-                            type="time"
-                            fullWidth
-                            name="fimAlmoco"
-                            value={horarios[dia.value]?.fimAlmoco || ''}
-                            onChange={(e) => handleHorarioChange(dia.value, e)}
-                            InputLabelProps={{ shrink: true }}
-                            inputProps={{ step: 300 }}
-                          />
-                        </Grid>
-                        <Grid item xs={6}>
-                          <TextField
-                            label="Duração do Atendimento (minutos)"
-                            type="number"
-                            fullWidth
-                            name="duracaoAtendimento"
-                            value={horarios[dia.value]?.duracaoAtendimento || ''}
-                            onChange={(e) => handleHorarioChange(dia.value, e)}
-                          />
-                        </Grid>
-                      </Grid>
-                    )}
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-
-          <Box sx={{ marginTop: 3 }}>
-            <Button variant="contained" color="primary" onClick={handleSave}>Salvar Horários</Button>
-          </Box>
-
-          <Box sx={{ height: 500, marginTop: 5 }}>
-            <Calendar
-              localizer={localizer}
-              events={eventos}
-              startAccessor="start"
-              endAccessor="end"
-              style={{ height: 500 }}
-              className="calendar"
-            />
-          </Box>
-        </>
-      )}
     </Box>
   );
 };

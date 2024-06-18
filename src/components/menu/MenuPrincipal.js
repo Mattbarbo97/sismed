@@ -112,9 +112,9 @@ const MenuPrincipal = () => {
                         </ListItemButton>
                         <Collapse in={showUserCrudMenu} timeout="auto" unmountOnExit>
                             <List component="div" disablePadding>
-                                <ListItemButton sx={{ pl: 4 }} onClick={() => handleNavigate("/cadastro-usuario")}>
+                                {/* <ListItemButton sx={{ pl: 4 }} onClick={() => handleNavigate("/cadastro-usuario")}>
                                     <ListItemText primary="Cadastrar" />
-                                </ListItemButton>
+                                </ListItemButton> */}
 
                                 <ListItemButton sx={{ pl: 4 }} onClick={() => handleNavigate("/usuarios-cadastrados")}>
                                     <ListItemText primary="Colaboradores" />

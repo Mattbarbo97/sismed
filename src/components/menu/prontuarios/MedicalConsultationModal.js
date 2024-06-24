@@ -7,8 +7,11 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import PrintableDocument from './PrintableDocument';
+import ReceitaControleEspecial from './ReceituarioControleEspecial';
 import { formatInTimeZone } from 'date-fns-tz';
 import { useUser } from '../../../context/UserContext';
+import { storage } from '../../../firebase';  // Importação do Firebase Storage
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 const timeZone = 'America/Sao_Paulo';
 
@@ -40,10 +43,12 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
   const [printContentList, setPrintContentList] = useState([]);
   const [printIndex, setPrintIndex] = useState(0);
   const [printTitle, setPrintTitle] = useState('');
-  const [enableImageField, setEnableImageField] = useState(false);
-  const [image, setImage] = useState(null);
-  const [imageCaption, setImageCaption] = useState("");
-  const [openImageModal, setOpenImageModal] = useState(false);
+  const [enableFileField, setEnableFileField] = useState(false);
+  const [file, setFile] = useState(null);
+  const [filePath, setFilePath] = useState(null);
+  const [fileCaption, setFileCaption] = useState("");
+  const [openFileModal, setOpenFileModal] = useState(false);
+  const [openReceitaEspecialModal, setOpenReceitaEspecialModal] = useState(false);
 
   const formik = useFormik({
     initialValues: {
@@ -54,7 +59,7 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
       horaAtendimento: getBrazilTime()
     },
     validationSchema: validationSchema,
-    onSubmit: (values) => {
+    onSubmit: async (values) => {
       // Converte as quebras de linha HTML para quebras de linha de texto
       values.receitas = values.receitas.map(receita => ({
         ...receita,
@@ -64,9 +69,32 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
         ...exame,
         value: exame.value.replace(/<br>/g, '\n')
       }));
-      
-      handleSave({ ...values, image, imageCaption });
-      formik.resetForm();
+
+      if (file) {
+        const fileRef = ref(storage, `files/${file.name}`);
+        const uploadTask = uploadBytesResumable(fileRef, file);
+
+        uploadTask.on('state_changed', 
+          (snapshot) => {
+            // Handle progress
+          }, 
+          (error) => {
+            console.error("File upload error: ", error);
+          }, 
+          async () => {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            console.log("File uploaded successfully: ", downloadURL);
+            handleSave({ ...values, file: downloadURL, fileCaption });
+            formik.resetForm();
+            setFile(null);
+            setFilePath(null);
+            setFileCaption("");
+          }
+        );
+      } else {
+        handleSave({ ...values, file: null, fileCaption });
+        formik.resetForm();
+      }
     },
   });
 
@@ -77,7 +105,7 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
       const lines = updatedValue.split('\n');
       const newLineNumber = lines.length + 1;
       updatedValue += `\n${newLineNumber}- `;
-      formik.setFieldValue(`${field}[${index}].value`, updatedValue);
+      formik.setFieldValue(`${field}[index].value`, updatedValue);
     }
   };
 
@@ -143,17 +171,23 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result);
-      };
-      reader.readAsDataURL(file);
+      setFilePath(URL.createObjectURL(file));
+      setFile(file);
     }
   };
 
   return (
     <>
-      <Modal open={open} onClose={onClose}>
+      <Modal
+        open={open}
+        onClose={onClose}
+        BackdropProps={{
+          style: {
+            backgroundColor: 'rgba(255, 255, 255, 0.8)', // Fundo branco semi-transparente
+          },
+        }}
+        sx={{ zIndex: 1300 }}
+      >
         <Paper
           sx={{
             position: "absolute",
@@ -165,10 +199,11 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
             transform: "translate(-50%, -50%)",
             maxHeight: "80vh",
             overflowY: "auto",
+            zIndex: 1400,
           }}
         >
           <Typography variant="h6" style={{ textAlign: "center" }}>Novo Atendimento</Typography>
-          <Typography variant="subtitle1">Paciente: {paciente.nome}</Typography>
+          <Typography variant="subtitle1">Paciente: {paciente?.nome}</Typography>
           <form onSubmit={formik.handleSubmit}>
             <Typography variant="h6">Receitas</Typography>
             <Box display="flex" flexDirection="column" alignItems="center" gap={2} sx={{ marginBottom: 2 }}>
@@ -206,10 +241,17 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
               <Box display="flex" alignItems="center" gap={1} sx={{ mt: 2 }}>
                 <Button
                   variant="contained"
-                  color="secondary"
                   onClick={imprimirReceita}
+                  className="custom-button"  // Adiciona a classe CSS
                 >
                   Imprimir Receita
+                </Button>
+                <Button
+                  variant="contained"
+                  onClick={() => setOpenReceitaEspecialModal(true)}
+                  className="custom-button"  // Adiciona a classe CSS
+                >
+                  Receita de Controle Especial
                 </Button>
               </Box>
             </Box>
@@ -252,6 +294,7 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
                 <Button
                   variant="contained"
                   onClick={imprimirExames}
+                  className="custom-button"  // Adiciona a classe CSS
                 >
                   Imprimir Exames
                 </Button>
@@ -277,13 +320,13 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
             <FormControlLabel
               control={
                 <Checkbox
-                  checked={enableImageField}
-                  onChange={() => setEnableImageField((prev) => !prev)}
+                  checked={enableFileField}
+                  onChange={() => setEnableFileField((prev) => !prev)}
                 />
               }
-              label="Adicionar Imagem"
+              label="Adicionar Arquivo"
             />
-            {enableImageField && (
+            {enableFileField && (
               <Box
                 sx={{
                   display: "flex",
@@ -297,18 +340,13 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
                   onChange={handleFileUpload}
                   variant="standard"
                 />
-                {image && (
+                {file && (
                   <>
-                    <img
-                      src={image}
-                      alt="Uploaded"
-                      style={{ width: '50px', height: '50px', objectFit: 'contain', cursor: 'pointer' }}
-                      onClick={() => setOpenImageModal(true)}
-                    />
+                    <a href={filePath} target="_blank" rel="noopener noreferrer">{file.name}</a>
                     <TextField
-                      label="Legenda da Imagem"
-                      value={imageCaption}
-                      onChange={(e) => setImageCaption(e.target.value)}
+                      label="Legenda do Arquivo"
+                      value={fileCaption}
+                      onChange={(e) => setFileCaption(e.target.value)}
                       variant="standard"
                     />
                   </>
@@ -387,6 +425,9 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
               color="primary"
               onClick={() => {
                 formik.resetForm();
+                setFile(null);
+                setFilePath(null);
+                setFileCaption("");
                 setConfirmClear(false);
               }}
             >
@@ -421,7 +462,18 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
         />
       )}
 
-      <Modal open={openImageModal} onClose={() => setOpenImageModal(false)}>
+      <ReceitaControleEspecial
+        open={openReceitaEspecialModal}
+        onClose={() => setOpenReceitaEspecialModal(false)}
+        paciente={paciente}
+        conteudo={printContentList}
+        titulo='Receita de Controle Especial'
+        medico={{ nome: user?.nome, crm: user?.identificacaoProfissional }}
+        includeDate={true}
+        onDocumentPrinted={() => handleDocumentPrinted('receita de controle especial')}
+      />
+
+      <Modal open={openFileModal} onClose={() => setOpenFileModal(false)}>
         <Paper
           sx={{
             position: "absolute",
@@ -433,7 +485,11 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
             p: 4,
           }}
         >
-          <img src={image} alt="Ampliado" style={{ width: '100%', height: 'auto' }} />
+          {filePath ? (
+            <a href={filePath} target="_blank" rel="noopener noreferrer">{file.name}</a>
+          ) : (
+            <Typography variant="body1">Nenhum arquivo carregado</Typography>
+          )}
         </Paper>
       </Modal>
     </>

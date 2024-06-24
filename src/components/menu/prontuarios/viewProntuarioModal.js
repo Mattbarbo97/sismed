@@ -132,6 +132,8 @@ const ViewProntuarioModal = ({ prontuario, open, onClose }) => {
     );
   }
 
+  console.log("Prontuário com arquivo:", prontuario.file);
+
   return (
     <>
       <Modal open={open} onClose={onClose}>
@@ -264,117 +266,117 @@ const ViewProntuarioModal = ({ prontuario, open, onClose }) => {
             </Grid>
           </Box>
           {prontuario.receitas?.length > 0 && (
-          <Box
-            mb={2}
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              flexDirection: "column",
-              gap: 2,
-            }}
-          >
-            <Typography variant="h5">
-              Receituário:
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleReimprimirReceita}
-                sx={{ marginLeft: 2 }}
-              >
-                Imprimir Receita
-              </Button>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={includeDateReceita}
-                    onChange={(e) => setIncludeDateReceita(e.target.checked)}
-                  />
-                }
-                label="Incluir data"
-              />
-            </Typography>
-            <Grid
-              container
-              spacing={0}
+            <Box
+              mb={2}
               sx={{
-                backgroundColor: "#f5f5f5",
-                padding: 2,
-                justifyContent: "space-between",
-                gap: 3,
+                display: "flex",
+                justifyContent: "center",
+                flexDirection: "column",
+                gap: 2,
               }}
             >
-              {prontuario.receitas?.length > 0 ? (
-                prontuario.receitas.map((Receituário, index) => (
-                  <Grid item xs={12} key={index}>
-                    <Typography variant="body1">
-                      <b>Receituário {index + 1}:</b>{" "}
-                      {Receituário.value}
-                    </Typography>
-                  </Grid>
-                ))
-              ) : (
-                <Typography variant="body1">
-                  Nenhuma Receituário cadastrada
-                </Typography>
-              )}
-            </Grid>
-          </Box>
+              <Typography variant="h5">
+                Receituário:
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleReimprimirReceita}
+                  sx={{ marginLeft: 2 }}
+                >
+                  Imprimir Receita
+                </Button>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={includeDateReceita}
+                      onChange={(e) => setIncludeDateReceita(e.target.checked)}
+                    />
+                  }
+                  label="Incluir data"
+                />
+              </Typography>
+              <Grid
+                container
+                spacing={0}
+                sx={{
+                  backgroundColor: "#f5f5f5",
+                  padding: 2,
+                  justifyContent: "space-between",
+                  gap: 3,
+                }}
+              >
+                {prontuario.receitas?.length > 0 ? (
+                  prontuario.receitas.map((Receituário, index) => (
+                    <Grid item xs={12} key={index}>
+                      <Typography variant="body1">
+                        <b>Receituário {index + 1}:</b>{" "}
+                        {Receituário.value}
+                      </Typography>
+                    </Grid>
+                  ))
+                ) : (
+                  <Typography variant="body1">
+                    Nenhuma Receituário cadastrada
+                  </Typography>
+                )}
+              </Grid>
+            </Box>
           )}
           {prontuario.exames?.length > 0 && (
-          <Box
-            mb={2}
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              flexDirection: "column",
-              gap: 2,
-            }}
-          >
-            <Typography variant="h5">
-              Exames:
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleReimprimirExame}
-                sx={{ marginLeft: 2 }}
-              >
-                Imprimir Exames
-              </Button>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={includeDateExame}
-                    onChange={(e) => setIncludeDateExame(e.target.checked)}
-                  />
-                }
-                label="Incluir data"
-              />
-            </Typography>
-            <Grid
-              container
-              spacing={0}
+            <Box
+              mb={2}
               sx={{
-                backgroundColor: "#f5f5f5",
-                padding: 2,
-                justifyContent: "space-between",
-                gap: 3,
+                display: "flex",
+                justifyContent: "center",
+                flexDirection: "column",
+                gap: 2,
               }}
             >
-              {prontuario.exames?.length > 0 ? (
-                prontuario.exames.map((exame, index) => (
-                  <Grid item xs={12} key={index}>
-                    <Typography variant="body1">
-                      <b>Exame {index + 1}:</b> {exame.value}
-                    </Typography>
-                  </Grid>
-                ))
-              ) : (
-                <Typography variant="body1">
-                  Nenhum exame cadastrado
-                </Typography>
-              )}
-            </Grid>
-          </Box>
+              <Typography variant="h5">
+                Exames:
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleReimprimirExame}
+                  sx={{ marginLeft: 2 }}
+                >
+                  Imprimir Exames
+                </Button>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={includeDateExame}
+                      onChange={(e) => setIncludeDateExame(e.target.checked)}
+                    />
+                  }
+                  label="Incluir data"
+                />
+              </Typography>
+              <Grid
+                container
+                spacing={0}
+                sx={{
+                  backgroundColor: "#f5f5f5",
+                  padding: 2,
+                  justifyContent: "space-between",
+                  gap: 3,
+                }}
+              >
+                {prontuario.exames?.length > 0 ? (
+                  prontuario.exames.map((exame, index) => (
+                    <Grid item xs={12} key={index}>
+                      <Typography variant="body1">
+                        <b>Exame {index + 1}:</b> {exame.value}
+                      </Typography>
+                    </Grid>
+                  ))
+                ) : (
+                  <Typography variant="body1">
+                    Nenhum exame cadastrado
+                  </Typography>
+                )}
+              </Grid>
+            </Box>
           )}
           <Box
             mb={2}
@@ -403,6 +405,42 @@ const ViewProntuarioModal = ({ prontuario, open, onClose }) => {
               </Grid>
             </Grid>
           </Box>
+          {prontuario.file && (
+            <Box
+              mb={2}
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                flexDirection: "column",
+                gap: 2,
+              }}
+            >
+              <Typography variant="h5">Arquivo:</Typography>
+              <Grid
+                container
+                spacing={0}
+                sx={{
+                  backgroundColor: "#f5f5f5",
+                  padding: 2,
+                  justifyContent: "space-between",
+                  gap: 3,
+                }}
+              >
+                <Grid item xs={12}>
+                  <Typography variant="body1">
+                    <a href={prontuario.file} target="_blank" rel="noopener noreferrer">Download do Arquivo</a>
+                  </Typography>
+                </Grid>
+                {prontuario.fileCaption && (
+                  <Grid item xs={12}>
+                    <Typography variant="body1">
+                      <b>Legenda do Arquivo:</b> {prontuario.fileCaption}
+                    </Typography>
+                  </Grid>
+                )}
+              </Grid>
+            </Box>
+          )}
         </Paper>
       </Modal>
       {printData && (

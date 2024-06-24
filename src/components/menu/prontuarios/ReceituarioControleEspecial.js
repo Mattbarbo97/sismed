@@ -3,7 +3,68 @@ import { Modal, Box, Button, Typography } from '@mui/material';
 import { useReactToPrint } from 'react-to-print';
 import './PrintableDocumentStyles.css';
 import logoClinica from '../../../img/logoprint.jpeg';
+import rodapeImagem from './rodape-receita.jpg';
 import { formatInTimeZone } from 'date-fns-tz';
+
+// CSS incluído diretamente
+const styles = `
+.no-print {
+  display: none;
+}
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  .no-print {
+    display: none;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+}
+
+.modal-wrapper {
+  padding: 20px;
+  background-color: white;
+  border-radius: 8px;
+}
+
+.page {
+  margin: 20px 0;
+}
+
+.button-container-print {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.custom-button {
+  margin: 0 10px;
+}
+
+.patient-info-container {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.patient-info, .doctor-info {
+  margin-bottom: 10px;
+}
+
+.section-content {
+  margin-bottom: 20px;
+}
+
+.footer {
+  text-align: center;
+  margin-top: 20px;
+}
+`;
 
 // Define o fuso horário
 const timeZone = 'America/Sao_Paulo';
@@ -15,7 +76,7 @@ function getBrazilTime() {
 }
 
 // Componente funcional para o documento imprimível
-const PrintableDocument = forwardRef(({
+const ReceituarioControleEspecial = forwardRef(({
   open, // Estado que controla a abertura do modal
   onClose, // Função para fechar o modal
   paciente, // Dados do paciente
@@ -23,12 +84,20 @@ const PrintableDocument = forwardRef(({
   titulo, // Título do documento
   medico, // Dados do médico
   includeDate, // Booleano para incluir data de impressão
-  onDocumentPrinted = () => {}, // Callback após a impressão do documento
+  onDocumentPrinted = () => {}, // Callback após a impressão do documento (função padrão vazia)
   zIndex = 1300, // Índice Z para o modal
   tipoDocumento // Tipo do documento a ser impresso
 }, ref) => {
   const [currentIndex, setCurrentIndex] = useState(0); // Índice do conteúdo atual
   const printRef = useRef(); // Referência para o elemento imprimível
+
+  // Adicionando console.log para debug
+  useEffect(() => {
+    console.log('Modal open:', open);
+    console.log('Paciente:', paciente);
+    console.log('Conteúdo:', conteudo);
+    console.log('Médico:', medico);
+  }, [open, paciente, conteudo, medico]);
 
   // Manipulação da referência para permitir a impressão externa
   useImperativeHandle(ref, () => ({
@@ -70,30 +139,33 @@ const PrintableDocument = forwardRef(({
 
   // Estrutura do documento a ser impresso
   return (
-    <Modal open={open} onClose={onClose} className="modal-background" sx={{ zIndex }}>
-      <Box className="modal-wrapper">
-        {/* Elemento imprimível */}
-        <Box className="page" ref={printRef}>
-          <Header />
-          <DocumentTitle titulo={titulo} />
-          <PatientInfo paciente={paciente} includeDate={includeDate} />
-          <PrescriptionHeader tipoDocumento={tipoDocumento} />
-          <PrescriptionContent conteudo={conteudo[currentIndex]} />
-          <DoctorSignature medico={medico} />
-          <Footer />
-        </Box>
+    <>
+      <style>{styles}</style>
+      <Modal open={open} onClose={onClose} className="modal-background" sx={{ zIndex }}>
+        <Box className="modal-wrapper">
+          {/* Elemento imprimível */}
+          <Box className="page" ref={printRef}>
+            <Header />
+            <DocumentTitle titulo={titulo} />
+            <PatientInfo paciente={paciente} includeDate={includeDate} />
+            <PrescriptionHeader tipoDocumento={tipoDocumento} />
+            <PrescriptionContent conteudo={conteudo ? conteudo[currentIndex] : ''} />
+            <DoctorSignature medico={medico} />
+            <Footer />
+          </Box>
 
-        {/* Botões de impressão e cancelamento */}
-        <Box className="button-container-print">
-          <Button className="custom-button print-button" onClick={handlePrint}>
-            IMPRIMIR DOCUMENTO
-          </Button>
-          <Button className="custom-button cancel-button" onClick={onClose}>
-            CANCELAR IMPRESSÃO
-          </Button>
+          {/* Botões de impressão e cancelamento */}
+          <Box className="button-container-print">
+            <Button className="custom-button print-button" onClick={handlePrint}>
+              IMPRIMIR DOCUMENTO
+            </Button>
+            <Button className="custom-button cancel-button" onClick={onClose}>
+              CANCELAR IMPRESSÃO
+            </Button>
+          </Box>
         </Box>
-      </Box>
-    </Modal>
+      </Modal>
+    </>
   );
 });
 
@@ -158,6 +230,8 @@ const DoctorSignature = ({ medico }) => (
 // Rodapé do documento
 const Footer = () => (
   <Box className="footer">
+    <img className="rodape-imagem no-print" src={rodapeImagem} alt="Rodapé" />
+    <img className="rodape-imagem print-only" src={rodapeImagem} alt="Rodapé" style={{ maxWidth: '100%', height: 'auto', display: 'none' }} />
     <hr />
     <Box component="span" className="footer-info">
       Rua 23 de Maio, 398 - Guararema | SP | CEP 08900-000
@@ -167,4 +241,4 @@ const Footer = () => (
   </Box>
 );
 
-export default PrintableDocument;
+export default ReceituarioControleEspecial;

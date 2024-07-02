@@ -1,7 +1,5 @@
-/* eslint-disable no-unused-vars, no-loop-func */
-
 import React, { useState, useEffect } from 'react';
-import { getFirestore, collection, getDocs, doc, updateDoc, addDoc } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, doc, updateDoc, addDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../../firebase'; // Atualize o caminho conforme a estrutura do seu projeto
 import MenuPrincipal from '../../menu/MenuPrincipal'; // Atualize o caminho conforme a estrutura do seu projeto
 import {
@@ -23,7 +21,7 @@ import {
   DialogActions,
   Autocomplete,
 } from '@mui/material';
-import { format } from 'date-fns';
+import { format, addWeeks, isAfter } from 'date-fns';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import SearchIcon from '@mui/icons-material/Search';
 
@@ -34,7 +32,11 @@ const VerificarAgendamentos = () => {
   const [diaSelecionado, setDiaSelecionado] = useState('');
   const [pacientes, setPacientes] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [novoPaciente, setNovoPaciente] = useState('');
+  const [agendamentoParaDeletar, setAgendamentoParaDeletar] = useState(null);
+  const [dataParaDeletar, setDataParaDeletar] = useState(null);
+  const [confirmacaoTexto, setConfirmacaoTexto] = useState('');
 
   useEffect(() => {
     const fetchMedicos = async () => {
@@ -63,7 +65,7 @@ const VerificarAgendamentos = () => {
         const agendamentosList = [];
         querySnapshot.forEach((doc) => {
           const data = doc.data();
-          if (data.atendenteId === medicoSelecionado) {
+          if (data.ProfissionalId === medicoSelecionado) {
             const agendamentoData = data.data.toDate ? data.data.toDate() : new Date(data.data);
             agendamentosList.push({ id: doc.id, ...data, data: agendamentoData });
           }
@@ -74,6 +76,25 @@ const VerificarAgendamentos = () => {
       fetchAgendamentos();
     }
   }, [medicoSelecionado]);
+
+  useEffect(() => {
+    const excluirAgendamentosAntigos = async () => {
+      const hoje = new Date();
+      const agendamentosAntigos = agendamentos.filter(agendamento => isAfter(hoje, addWeeks(agendamento.data, 1)));
+      for (const agendamento of agendamentosAntigos) {
+        try {
+          await deleteDoc(doc(db, 'agendamentos', agendamento.id));
+        } catch (error) {
+          console.error('Erro ao excluir agendamento antigo:', error);
+        }
+      }
+      setAgendamentos(prevAgendamentos => prevAgendamentos.filter(agendamento => !agendamentosAntigos.includes(agendamento)));
+    };
+
+    if (agendamentos.length > 0) {
+      excluirAgendamentosAntigos();
+    }
+  }, [agendamentos]);
 
   const agruparAgendamentosPorData = (agendamentos) => {
     return agendamentos.reduce((grupo, agendamento) => {
@@ -100,18 +121,50 @@ const VerificarAgendamentos = () => {
   const adicionarAgendamento = async () => {
     try {
       const novoAgendamento = {
-        atendenteId: medicoSelecionado,
+        ProfissionalId: medicoSelecionado,
         pacienteNome: novoPaciente,
-        data: diaSelecionado,
+        data: new Date(diaSelecionado), // Converter string para Date
         horario: 'Encaixe', // Defina o horário apropriado
         status: 'confirmado',
       };
-      await addDoc(collection(db, 'agendamentos'), novoAgendamento);
+      const docRef = await addDoc(collection(db, 'agendamentos'), novoAgendamento);
       setDialogOpen(false);
       setNovoPaciente('');
       setDiaSelecionado('');
+      setAgendamentos(prev => [...prev, { id: docRef.id, ...novoAgendamento }]);
     } catch (error) {
       console.error('Erro ao adicionar agendamento: ', error);
+    }
+  };
+
+  const deletarAgendamento = async () => {
+    if (confirmacaoTexto.toLowerCase() === 'deletar' && agendamentoParaDeletar) {
+      try {
+        await deleteDoc(doc(db, 'agendamentos', agendamentoParaDeletar.id));
+        setAgendamentos(prevAgendamentos => prevAgendamentos.filter(ag => ag.id !== agendamentoParaDeletar.id));
+        setConfirmacaoTexto('');
+        setAgendamentoParaDeletar(null);
+        setConfirmDialogOpen(false);
+      } catch (error) {
+        console.error('Erro ao deletar agendamento: ', error);
+      }
+    }
+  };
+
+  const deletarData = async () => {
+    if (confirmacaoTexto.toLowerCase() === 'deletar' && dataParaDeletar) {
+      try {
+        const agendamentosDaData = agendamentos.filter(ag => format(ag.data, 'yyyy-MM-dd') === dataParaDeletar);
+        for (const agendamento of agendamentosDaData) {
+          await deleteDoc(doc(db, 'agendamentos', agendamento.id));
+        }
+        setAgendamentos(prevAgendamentos => prevAgendamentos.filter(ag => format(ag.data, 'yyyy-MM-dd') !== dataParaDeletar));
+        setConfirmacaoTexto('');
+        setDataParaDeletar(null);
+        setConfirmDialogOpen(false);
+      } catch (error) {
+        console.error('Erro ao deletar data: ', error);
+      }
     }
   };
 
@@ -127,6 +180,20 @@ const VerificarAgendamentos = () => {
 
   const handleCloseDialog = () => {
     setDialogOpen(false);
+  };
+
+  const handleOpenConfirmDialog = (agendamento) => {
+    setAgendamentoParaDeletar(agendamento);
+    setConfirmDialogOpen(true);
+  };
+
+  const handleOpenConfirmDialogData = (data) => {
+    setDataParaDeletar(data);
+    setConfirmDialogOpen(true);
+  };
+
+  const handleCloseConfirmDialog = () => {
+    setConfirmDialogOpen(false);
   };
 
   const handlePacienteChange = (event, newValue) => {
@@ -162,17 +229,20 @@ const VerificarAgendamentos = () => {
 
       <Box sx={{ display: 'flex', justifyContent: 'center', marginBottom: 3 }}>
         {Object.keys(agendamentosAgrupados).map((data) => (
-          <IconButton key={data} onClick={() => handleDiaClick(data)}>
-            <CalendarTodayIcon />
-            <Typography variant="body2">
-              {format(new Date(data), 'dd/MM/yyyy')}
-            </Typography>
-          </IconButton>
+          <Box key={data}>
+            <IconButton onClick={() => handleDiaClick(data)}>
+              <CalendarTodayIcon />
+              <Typography variant="body2">
+                {format(new Date(data), 'dd/MM/yyyy')}
+              </Typography>
+            </IconButton>
+            <Button size="small" onClick={() => handleOpenConfirmDialogData(data)}>Deletar Data</Button>
+          </Box>
         ))}
       </Box>
 
       <Box>
-        {diaSelecionado && (
+        {diaSelecionado && agendamentosAgrupados[diaSelecionado] && (
           <Box>
             <Typography variant="h6" align="center">
               {format(new Date(diaSelecionado), 'dd/MM/yyyy')}
@@ -195,6 +265,7 @@ const VerificarAgendamentos = () => {
                   <Button size="small" onClick={() => atualizarStatusAgendamento(agendamento.id, 'confirmado')}>Confirmar</Button>
                   <Button size="small" onClick={() => atualizarStatusAgendamento(agendamento.id, 'desmarcado')}>Desmarcar</Button>
                   <Button size="small" onClick={handleOpenDialog}>Adicionar Encaixe</Button>
+                  <Button size="small" onClick={() => handleOpenConfirmDialog(agendamento)}>Deletar Agendamento</Button>
                 </CardActions>
               </Card>
             ))}
@@ -233,6 +304,25 @@ const VerificarAgendamentos = () => {
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancelar</Button>
           <Button onClick={adicionarAgendamento}>Adicionar</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={confirmDialogOpen} onClose={handleCloseConfirmDialog}>
+        <DialogTitle>Confirmar Exclusão</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Digite 'deletar' para confirmar"
+            type="text"
+            fullWidth
+            value={confirmacaoTexto}
+            onChange={(e) => setConfirmacaoTexto(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseConfirmDialog}>Cancelar</Button>
+          <Button onClick={agendamentoParaDeletar ? deletarAgendamento : deletarData}>Confirmar</Button>
         </DialogActions>
       </Dialog>
     </Box>

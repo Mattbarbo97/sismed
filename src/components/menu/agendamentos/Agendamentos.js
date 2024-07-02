@@ -1,7 +1,5 @@
-/* eslint-disable no-unused-vars, no-loop-func */ // Adiciona essas diretivas no início do arquivo para desabilitar os warnings específicos
-
 import React, { useState, useEffect } from 'react';
-import { getFirestore, doc, collection, getDocs, getDoc, addDoc } from 'firebase/firestore';
+import { getFirestore, doc, collection, getDocs, getDoc, addDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../firebase';
 import {
   TextField, MenuItem, Button, FormControl, InputLabel, Select, Typography, Container, Box, Stepper, Step, StepLabel, IconButton, Modal, List, ListItem, ListItemText
@@ -37,6 +35,7 @@ function Agendamento() {
   const [opcaoAtendimento, setOpcaoAtendimento] = useState('');
   const [servico, setServico] = useState('');
   const [Profissional, setProfissional] = useState('');
+  const [ProfissionalNome, setProfissionalNome] = useState(''); // Armazena o nome do profissional
   const [data, setData] = useState('');
   const [funcoes, setFuncoes] = useState([]);
   const [especialidades, setEspecialidades] = useState([]);
@@ -49,27 +48,29 @@ function Agendamento() {
   const [horarioSelecionado, setHorarioSelecionado] = useState('');
   const [events, setEvents] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
-  const [mostrarPacientes, setMostrarPacientes] = useState(false); // Novo estado
+  const [mostrarPacientes, setMostrarPacientes] = useState(false);
+  const [tipoAtendimento, setTipoAtendimento] = useState('');
+  const [isAgendamentoLivre, setIsAgendamentoLivre] = useState(false);
+  const [horaInicioLivre, setHoraInicioLivre] = useState('');
+  const [horaFimLivre, setHoraFimLivre] = useState('');
+  const [conflitoHorario, setConflitoHorario] = useState(false);
 
   useEffect(() => {
     const carregarDados = async () => {
       const db = getFirestore();
 
-      // Carregar funções
       const funcoesSnapshot = await getDocs(collection(db, "dbo.usuario"));
       const funcoesList = funcoesSnapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(funcao => funcao.ativo); // Filtrar funções inativas
+        .filter(funcao => funcao.ativo);
       setFuncoes(funcoesList);
 
-      // Carregar especialidades
       const especialidadesSnapshot = await getDocs(collection(db, "dbo.especialidades"));
       const especialidadesList = especialidadesSnapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(especialidade => especialidade.ativo); // Filtrar especialidades inativas
+        .filter(especialidade => especialidade.ativo);
       setEspecialidades(especialidadesList);
 
-      // Carregar pacientes
       const pacientesSnapshot = await getDocs(collection(db, "pacientes_cadastrados"));
       const pacientesList = pacientesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setPacientes(pacientesList);
@@ -87,7 +88,8 @@ function Agendamento() {
           const data = docSnap.data();
           const horarios = data.disponibilidade?.horarios || {};
           setHorariosDisponiveis(horarios);
-          const dias = Object.keys(horarios).filter(dia => horarios[dia]?.horaInicio && horarios[dia]?.horaFim);
+          const dias = Object.keys(horarios)
+            .filter(dia => horarios[dia]?.active && horarios[dia]?.horaInicio && horarios[dia]?.horaFim);
           setDiasDisponiveis(dias);
           const eventos = gerarEventos(horarios, dias);
           setEvents(eventos);
@@ -136,6 +138,7 @@ function Agendamento() {
     setTipoSelecao(event.target.value);
     setOpcaoAtendimento('');
     setProfissional('');
+    setProfissionalNome('');
     setProfissionals([]);
   };
 
@@ -161,7 +164,9 @@ function Agendamento() {
   };
 
   const handleProfissionalChange = (event) => {
+    const selectedProfissional = Profissionals.find(p => p.id === event.target.value);
     setProfissional(event.target.value);
+    setProfissionalNome(selectedProfissional ? selectedProfissional.nome : '');
   };
 
   const handleDateChange = (event) => {
@@ -183,13 +188,13 @@ function Agendamento() {
   };
 
   const handleSearch = () => {
-    setMostrarPacientes(true); // Mostrar pacientes ao clicar no botão de pesquisa
+    setMostrarPacientes(true);
   };
 
   const handleKeyPress = (event) => {
     if (event.key === 'Enter') {
-      event.preventDefault(); // Evitar o envio do formulário ao pressionar Enter
-      handleSearch(); // Mostrar pacientes ao pressionar Enter
+      event.preventDefault();
+      handleSearch();
     }
   };
 
@@ -201,40 +206,62 @@ function Agendamento() {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const verificarConflitoHorario = async (data, horaInicio, horaFim) => {
+    const agendamentosSnapshot = await getDocs(collection(db, 'agendamentos'));
+    const agendamentosList = agendamentosSnapshot.docs.map(doc => doc.data());
 
-    try {
-      const agendamento = {
-        pacienteId: pacienteSelecionado,
-        pacienteNome,
-        ProfissionalId: Profissional,
-        data,
-        horario: horarioSelecionado
-      };
+    const inicioNovo = new Date(`${data}T${horaInicio}:00`);
+    const fimNovo = new Date(`${data}T${horaFim}:00`);
 
-      await addDoc(collection(db, 'agendamentos'), agendamento);
+    return agendamentosList.some(agendamento => {
+      if (!agendamento.horario) return false; // Tratamento para evitar erro de acesso a propriedades indefinidas
+      const [horaInicioAg, horaFimAg] = agendamento.horario.split(' - ');
+      const inicioAgendamento = new Date(`${agendamento.data}T${horaInicioAg}:00`);
+      const fimAgendamento = new Date(`${agendamento.data}T${horaFimAg}:00`);
 
-      // Dados do evento para enviar ao Google Calendar
-      const googleEvent = {
-        summary: `Consulta com ${pacienteNome}`,
-        location: '',
-        description: 'Consulta médica',
-        start: new Date(data).toISOString(),
-        end: new Date(new Date(data).getTime() + 60 * 60 * 1000).toISOString(), // Exemplo de 1 hora de duração
-      };
+      return (inicioNovo < fimAgendamento && fimNovo > inicioAgendamento);
+    });
+  };
 
-      await fetch('https://us-central1-unna-6c98e.cloudfunctions.net/addEventToCalendar', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(googleEvent)
-      });
+  const handleSubmit = async () => {
+    const conflito = await verificarConflitoHorario(data, isAgendamentoLivre ? horaInicioLivre : horarioSelecionado.split(' - ')[0], isAgendamentoLivre ? horaFimLivre : horarioSelecionado.split(' - ')[1]);
 
-      alert('Agendamento confirmado!');
-    } catch (error) {
-      console.error('Erro ao confirmar agendamento:', error);
+    if (conflito) {
+      setConflitoHorario(true);
+    } else {
+      try {
+        const agendamento = {
+          pacienteId: pacienteSelecionado,
+          pacienteNome,
+          ProfissionalId: Profissional,
+          ProfissionalNome,
+          data,
+          horario: isAgendamentoLivre ? `${horaInicioLivre} - ${horaFimLivre}` : horarioSelecionado,
+          tipoAtendimento
+        };
+
+        console.log("Agendamento a ser salvo:", agendamento);
+
+        await addDoc(collection(db, 'agendamentos'), agendamento);
+
+        // Marcar horário como indisponível
+        const docRef = doc(db, 'usuarios_cadastrados', Profissional);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const dataDoc = docSnap.data();
+          const horarios = dataDoc.disponibilidade?.horarios || {};
+          const dia = getDay(new Date(data));
+          if (horarios[dia]) {
+            horarios[dia].indisponiveis = horarios[dia].indisponiveis || [];
+            horarios[dia].indisponiveis.push({ inicio: isAgendamentoLivre ? horaInicioLivre : horarioSelecionado.split(' - ')[0], fim: isAgendamentoLivre ? horaFimLivre : horarioSelecionado.split(' - ')[1] });
+            await updateDoc(docRef, { disponibilidade: { horarios } });
+          }
+        }
+
+        alert('Agendamento confirmado!');
+      } catch (error) {
+        console.error('Erro ao confirmar agendamento:', error);
+      }
     }
   };
 
@@ -257,7 +284,7 @@ function Agendamento() {
     return hora ? hora.slice(0, 5) : '';
   };
 
-  const gerarPeriodos = (horario) => {
+  const gerarPeriodos = (horario, dia) => {
     if (!horario.horaInicio || !horario.horaFim || !horario.duracaoAtendimento) {
       return [];
     }
@@ -270,6 +297,8 @@ function Agendamento() {
     let currentH = inicioH;
     let currentM = inicioM;
 
+    const indisponiveis = horario.indisponiveis || [];
+
     while (currentH < fimH || (currentH === fimH && currentM < fimM)) {
       const endM = currentM + duracao;
       const endH = currentH + Math.floor(endM / 60);
@@ -281,7 +310,22 @@ function Agendamento() {
 
       const startStr = `${currentH.toString().padStart(2, '0')}:${currentM.toString().padStart(2, '0')}`;
       const endStr = `${endH.toString().padStart(2, '0')}:${actualEndM.toString().padStart(2, '0')}`;
-      periodos.push(`${startStr} - ${endStr}`);
+
+      const isIndisponivel = indisponiveis.some(ind => {
+        const [indInicioH, indInicioM] = ind.inicio.split(':').map(Number);
+        const [indFimH, indFimM] = ind.fim.split(':').map(Number);
+
+        const indInicio = indInicioH * 60 + indInicioM;
+        const indFim = indFimH * 60 + indFimM;
+        const periodoInicio = currentH * 60 + currentM;
+        const periodoFim = endH * 60 + actualEndM;
+
+        return (periodoInicio >= indInicio && periodoInicio < indFim) || (periodoFim > indInicio && periodoFim <= indFim);
+      });
+
+      if (!isIndisponivel) {
+        periodos.push(`${startStr} - ${endStr}`);
+      }
 
       currentH = endH;
       currentM = actualEndM;
@@ -302,11 +346,38 @@ function Agendamento() {
           ))}
         </Stepper>
         {activeStep === steps.length ? (
-          <Typography variant="h5" className="header">
-            Agendamento Concluído!
-          </Typography>
+          <Box>
+            <Typography variant="h5" className="header">
+              Confirmar Agendamento
+            </Typography>
+            <Typography variant="body1">
+              <strong>Paciente:</strong> {pacienteNome}
+            </Typography>
+            <Typography variant="body1">
+              <strong>Profissional:</strong> {ProfissionalNome}
+            </Typography>
+            <Typography variant="body1">
+              <strong>Data:</strong> {formatDate(data)}
+            </Typography>
+            <Typography variant="body1">
+              <strong>Horário:</strong> {isAgendamentoLivre ? `${horaInicioLivre} - ${horaFimLivre}` : horarioSelecionado}
+            </Typography>
+            <Box display="flex" justifyContent="space-between" marginTop={2}>
+              <Button onClick={handleBack}>
+                Voltar
+              </Button>
+              <Button
+                type="button"
+                variant="contained"
+                color="primary"
+                onClick={handleSubmit}
+              >
+                Confirmar
+              </Button>
+            </Box>
+          </Box>
         ) : (
-          <form onSubmit={handleSubmit}>
+          <form>
             <Typography variant="h4" className="header">Agendar Serviço</Typography>
 
             {activeStep === 0 && (
@@ -380,65 +451,126 @@ function Agendamento() {
 
             {activeStep === 2 && (
               <>
-                <Typography variant="h6" margin="normal">
-                  Selecione uma data:
-                </Typography>
-
-                <Box sx={{ height: 500, marginTop: 2 }}>
-                  <Calendar
-                    localizer={localizer}
-                    events={events}
-                    startAccessor="start"
-                    endAccessor="end"
-                    style={{ height: 500 }}
-                    selectable
-                    onSelectEvent={handleSelectEvent}
-                    messages={{
-                      next: "Próximo",
-                      previous: "Anterior",
-                      today: "Hoje",
-                      month: "Mês",
-                      week: "Semana",
-                      day: "Dia",
-                      agenda: "Agenda",
-                      date: "Data",
-                      time: "Hora",
-                      event: "Evento",
-                      allDay: "Todo o dia",
-                      noEventsInRange: "Não há eventos neste intervalo.",
+                <FormControl fullWidth margin="normal">
+                  <InputLabel className="input-label">Tipo de Atendimento</InputLabel>
+                  <Select
+                    className="select-field"
+                    value={tipoAtendimento}
+                    label="Tipo de Atendimento"
+                    onChange={(e) => {
+                      setTipoAtendimento(e.target.value);
+                      setIsAgendamentoLivre(e.target.value === 'livre');
                     }}
-                    components={{
-                      event: ({ event }) => {
-                        const isPast = isBefore(new Date(event.start), new Date());
-                        return (
-                          <span style={{ color: isPast ? 'gray' : 'black' }}>
-                            {event.title}
-                          </span>
-                        );
-                      }
-                    }}
-                  />
-                </Box>
+                  >
+                    <MenuItem value="normal">Atendimento Normal</MenuItem>
+                    <MenuItem value="retorno">Retorno</MenuItem>
+                    <MenuItem value="livre">Agendamento Livre</MenuItem>
+                  </Select>
+                </FormControl>
 
-                <Modal
-                  open={modalOpen}
-                  onClose={() => setModalOpen(false)}
-                  aria-labelledby="simple-modal-title"
-                  aria-describedby="simple-modal-description"
-                >
-                  <Box sx={{ margin: 'auto', marginTop: '10%', width: 400, backgroundColor: 'white', padding: 2 }}>
+                {tipoAtendimento === 'livre' && (
+                  <>
+                    <TextField
+                      label="Data"
+                      type="date"
+                      fullWidth
+                      value={data}
+                      onChange={handleDateChange}
+                      InputLabelProps={{ shrink: true }}
+                      margin="normal"
+                    />
+                    <TextField
+                      label="Hora de Início"
+                      type="time"
+                      fullWidth
+                      value={horaInicioLivre}
+                      onChange={(e) => setHoraInicioLivre(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ step: 300 }}
+                      margin="normal"
+                    />
+                    <TextField
+                      label="Hora de Fim"
+                      type="time"
+                      fullWidth
+                      value={horaFimLivre}
+                      onChange={(e) => setHoraFimLivre(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ step: 300 }}
+                      margin="normal"
+                    />
+                  </>
+                )}
+
+                {tipoAtendimento !== 'livre' && (
+                  <>
                     <Typography variant="h6" margin="normal">
-                      Horários Disponíveis
+                      Selecione uma data:
                     </Typography>
-                    <List>
-                      {gerarPeriodos(horariosDisponiveis[getDay(new Date(data))] || {}).map((horario, index) => (
-                        <ListItem button key={index} onClick={() => { setHorarioSelecionado(horario); setModalOpen(false); }}>
-                          <ListItemText primary={horario} />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </Box>
-                </Modal>
+
+                    <Box sx={{ height: 500, marginTop: 2 }}>
+                      <Calendar
+                        localizer={localizer}
+                        events={events}
+                        startAccessor="start"
+                        endAccessor="end"
+                        style={{ height: 500 }}
+                        selectable
+                        onSelectEvent={handleSelectEvent}
+                        messages={{
+                          next: "Próximo",
+                          previous: "Anterior",
+                          today: "Hoje",
+                          month: "Mês",
+                          week: "Semana",
+                          day: "Dia",
+                          agenda: "Agenda",
+                          date: "Data",
+                          time: "Hora",
+                          event: "Evento",
+                          allDay: "Todo o dia",
+                          noEventsInRange: "Não há eventos neste intervalo.",
+                        }}
+                        components={{
+                          event: ({ event }) => {
+                            const isPast = isBefore(new Date(event.start), new Date());
+                            return (
+                              <span style={{ color: isPast ? 'gray' : 'black' }}>
+                                {event.title}
+                              </span>
+                            );
+                          }
+                        }}
+                      />
+                    </Box>
+
+                    <Modal
+                      open={modalOpen}
+                      onClose={() => setModalOpen(false)}
+                      aria-labelledby="simple-modal-title"
+                      aria-describedby="simple-modal-description"
+                    >
+                      <Box sx={{ margin: 'auto', marginTop: '10%', width: 400, backgroundColor: 'white', padding: 2 }}>
+                        <Typography variant="h6" margin="normal">
+                          Horários Disponíveis
+                        </Typography>
+                        <List>
+                          {gerarPeriodos(horariosDisponiveis[getDay(new Date(data))] || {}, getDay(new Date(data))).map((horario, index) => (
+                            <ListItem button key={index} onClick={() => { setHorarioSelecionado(horario); setModalOpen(false); }}>
+                              <ListItemText primary={horario} />
+                            </ListItem>
+                          ))}
+                        </List>
+                      </Box>
+                    </Modal>
+                  </>
+                )}
+
+                {conflitoHorario && (
+                  <Typography variant="body1" color="error" margin="normal">
+                    Conflito de horário! Por favor, selecione outro horário.
+                  </Typography>
+                )}
               </>
             )}
 
@@ -446,15 +578,9 @@ function Agendamento() {
               <Button disabled={activeStep === 0} onClick={handleBack}>
                 Voltar
               </Button>
-              {activeStep === steps.length - 1 ? (
-                <Button type="submit" variant="contained" color="primary">
-                  Confirmar Agendamento
-                </Button>
-              ) : (
-                <Button variant="contained" color="primary" onClick={handleNext}>
-                  Próximo
-                </Button>
-              )}
+              <Button variant="contained" color="primary" onClick={handleNext}>
+                Próximo
+              </Button>
             </Box>
           </form>
         )}

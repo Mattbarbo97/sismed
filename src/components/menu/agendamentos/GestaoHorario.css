@@ -38,3 +38,8 @@
 .calendar {
   height: 500px;
 }
+
+.horario-ativo {
+  background-color: #e0f7fa; /* Cor de fundo para dias com atendimento */
+  border: 1px solid #00838f; /* Borda para destacar */
+}

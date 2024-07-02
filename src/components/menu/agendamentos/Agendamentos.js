@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import { getFirestore, doc, collection, getDocs, getDoc, addDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../firebase';

@@ -198,6 +198,7 @@ const GestaoHorario = () => {
     }
 
     return eventos;
+      // eslint-disable-next-line
   }, [profissionais, ProfissionalSelecionado, frequencia]);
 
   useEffect(() => {

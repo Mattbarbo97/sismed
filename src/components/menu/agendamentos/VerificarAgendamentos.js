@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars, no-loop-func */
 import React, { useState, useEffect } from 'react';
 import { getFirestore, collection, getDocs, doc, updateDoc, addDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../../firebase'; // Atualize o caminho conforme a estrutura do seu projeto

@@ -27,7 +27,7 @@ function Rotas() {
       <Route path="/agendamentos" element={<Agendamentos />} />
       <Route path="/printable-document" element={<PrintableDocument />} />
       <Route path="/gestao-horario" element={<GestaoHorario />} />
-      <Route path="//verificar-agendamentos" element={<VerificarAgendamentos />} />
+      <Route path="/verificar-agendamentos" element={<VerificarAgendamentos />} />
       {/* Outras rotas conforme necessário */}
     </Routes>
   );

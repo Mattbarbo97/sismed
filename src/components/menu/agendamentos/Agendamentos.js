@@ -33,6 +33,7 @@ function Agendamento() {
   const [activeStep, setActiveStep] = useState(0);
   const [tipoSelecao, setTipoSelecao] = useState('');
   const [opcaoAtendimento, setOpcaoAtendimento] = useState('');
+  // eslint-disable-next-line
   const [servico, setServico] = useState('');
   const [Profissional, setProfissional] = useState('');
   const [ProfissionalNome, setProfissionalNome] = useState(''); // Armazena o nome do profissional

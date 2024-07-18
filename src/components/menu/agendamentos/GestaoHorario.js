@@ -58,13 +58,13 @@ const diasDaSemana = [
 ];
 
 const initialHorarios = {
-  1: { active: false, horaInicio: '', horaFim: '', inicioAlmoco: '', fimAlmoco: '', duracaoAtendimento: '' },
-  2: { active: false, horaInicio: '', horaFim: '', inicioAlmoco: '', fimAlmoco: '', duracaoAtendimento: '' },
-  3: { active: false, horaInicio: '', horaFim: '', inicioAlmoco: '', fimAlmoco: '', duracaoAtendimento: '' },
-  4: { active: false, horaInicio: '', horaFim: '', inicioAlmoco: '', fimAlmoco: '', duracaoAtendimento: '' },
-  5: { active: false, horaInicio: '', horaFim: '', inicioAlmoco: '', fimAlmoco: '', duracaoAtendimento: '' },
-  6: { active: false, horaInicio: '', horaFim: '', inicioAlmoco: '', fimAlmoco: '', duracaoAtendimento: '' },
-  0: { active: false, horaInicio: '', horaFim: '', inicioAlmoco: '', fimAlmoco: '', duracaoAtendimento: '' },
+  1: { active: false, horaInicio: '', horaFim: '', inicioAlmoco: '', fimAlmoco: '', duracaoAtendimento: '', duracaoRetorno: '' },
+  2: { active: false, horaInicio: '', horaFim: '', inicioAlmoco: '', fimAlmoco: '', duracaoAtendimento: '', duracaoRetorno: '' },
+  3: { active: false, horaInicio: '', horaFim: '', inicioAlmoco: '', fimAlmoco: '', duracaoAtendimento: '', duracaoRetorno: '' },
+  4: { active: false, horaInicio: '', horaFim: '', inicioAlmoco: '', fimAlmoco: '', duracaoAtendimento: '', duracaoRetorno: '' },
+  5: { active: false, horaInicio: '', horaFim: '', inicioAlmoco: '', fimAlmoco: '', duracaoAtendimento: '', duracaoRetorno: '' },
+  6: { active: false, horaInicio: '', horaFim: '', inicioAlmoco: '', fimAlmoco: '', duracaoAtendimento: '', duracaoRetorno: '' },
+  0: { active: false, horaInicio: '', horaFim: '', inicioAlmoco: '', fimAlmoco: '', duracaoAtendimento: '', duracaoRetorno: '' },
 };
 
 const messages = {
@@ -101,9 +101,9 @@ const GestaoHorario = () => {
     dias.forEach(dia => {
       if (dia === 5) {
         // Sexta-feira
-        horarios[dia] = { active: true, horaInicio: '08:00', horaFim: '11:00', duracaoAtendimento: 1500 }; // 25 horas em minutos
+        horarios[dia] = { active: true, horaInicio: '08:00', horaFim: '11:00', duracaoAtendimento: 1500, duracaoRetorno: 1500 }; // 25 horas em minutos
       } else {
-        horarios[dia] = { active: true, horaInicio: '08:00', horaFim: '19:00', duracaoAtendimento: 1500 }; // 25 horas em minutos
+        horarios[dia] = { active: true, horaInicio: '08:00', horaFim: '19:00', duracaoAtendimento: 1500, duracaoRetorno: 1500 }; // 25 horas em minutos
       }
     });
 
@@ -136,10 +136,24 @@ const GestaoHorario = () => {
             eventoFim.setHours(horaFimH, horaFimM, 0, 0);
 
             eventos.push({
-              title: `${profissionais.find(p => p.id === ProfissionalSelecionado).nome} - ${diasDaSemana.find(d => d.value === Number(dia)).label}`,
+              title: `${profissionais.find(p => p.id === ProfissionalSelecionado).nome} - ${diasDaSemana.find(d => d.value === Number(dia)).label} - Atendimento`,
               start: eventoInicio,
               end: eventoFim,
             });
+
+            if (horarioDia.duracaoRetorno) {
+              const eventoRetornoInicio = new Date(eventoInicio);
+              eventoRetornoInicio.setHours(horaInicioH, horaInicioM + horarioDia.duracaoRetorno, 0, 0);
+              const eventoRetornoFim = new Date(eventoRetornoInicio);
+              eventoRetornoFim.setHours(horaFimH, horaFimM + horarioDia.duracaoRetorno, 0, 0);
+
+              eventos.push({
+                title: `${profissionais.find(p => p.id === ProfissionalSelecionado).nome} - ${diasDaSemana.find(d => d.value === Number(dia)).label} - Retorno`,
+                start: eventoRetornoInicio,
+                end: eventoRetornoFim,
+              });
+            }
+
             console.log(`Evento adicionado: ${eventoInicio} - ${eventoFim}`);
           }
         }
@@ -429,6 +443,15 @@ const GestaoHorario = () => {
               fullWidth
               name="duracaoAtendimento"
               value={horarios[selectedDia]?.duracaoAtendimento || ''}
+              onChange={handleHorarioChange}
+              sx={{ marginTop: 2 }}
+            />
+            <TextField
+              label="Duração do Retorno (minutos)"
+              type="number"
+              fullWidth
+              name="duracaoRetorno"
+              value={horarios[selectedDia]?.duracaoRetorno || ''}
               onChange={handleHorarioChange}
               sx={{ marginTop: 2 }}
             />

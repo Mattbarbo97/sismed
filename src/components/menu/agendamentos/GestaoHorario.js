@@ -153,8 +153,8 @@ const GestaoHorario = () => {
       } else if (frequencia === 'mensal') {
         const currentMonth = dataAtual.getMonth();
         dataAtual = addMonths(dataAtual, 1);
-        if (dataAtual.getMonth() === currentMonth + 1 || (currentMonth === 11 && dataAtual.getMonth() === 0)) {
-          // Caso o próximo mês tenha menos dias, ajustar o dia para o último dia do mês anterior
+        if (dataAtual.getMonth() !== (currentMonth + 1) % 12) {
+          // Ajustar o dia para o último dia do mês anterior se o próximo mês tiver menos dias
           dataAtual.setDate(0);
         }
       } else {
@@ -176,10 +176,10 @@ const GestaoHorario = () => {
       console.log('Profissionais carregados:', profissionaisList);
       setProfissionais(profissionaisList);
     };
-  
+
     fetchProfissionais();
   }, []);
-  
+
   useEffect(() => {
     const fetchDisponibilidade = async () => {
       if (ProfissionalSelecionado) {

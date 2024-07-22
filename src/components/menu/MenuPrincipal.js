@@ -1,9 +1,30 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AppBar, Button, Collapse, Drawer, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Toolbar, Typography } from "@mui/material";
-import { Assignment as AssignmentIcon, CalendarToday as CalendarTodayIcon, ExitToApp as ExitToAppIcon, ExpandLess, ExpandMore, Group as GroupIcon, Home as HomeIcon, Menu as MenuIcon, Close as CloseIcon } from "@mui/icons-material";
+import {
+    AppBar,
+    Button,
+    Collapse,
+    Drawer,
+    IconButton,
+    List,
+    ListItemButton,
+    ListItemIcon,
+    ListItemText,
+    Toolbar,
+    Typography
+} from "@mui/material";
+import {
+    Assignment as AssignmentIcon,
+    CalendarToday as CalendarTodayIcon,
+    ExitToApp as ExitToAppIcon,
+    ExpandLess,
+    ExpandMore,
+    Group as GroupIcon,
+    Menu as MenuIcon
+} from "@mui/icons-material";
 import logoini from "../../img/logoini.png";
 import { useUser } from "../../context/UserContext";
+import './MenuPrincipal.css'; // Importando o CSS
 
 const MenuPrincipal = () => {
     const navigate = useNavigate();
@@ -20,10 +41,7 @@ const MenuPrincipal = () => {
     };
 
     const toggleDrawer = (open) => (event) => {
-        if (
-            event.type === "keydown" &&
-            (event.key === "Tab" || event.key === "Shift")
-        ) {
+        if (event.type === "keydown" && (event.key === "Tab" || event.key === "Shift")) {
             return;
         }
         setIsMenuOpen(open);
@@ -36,8 +54,8 @@ const MenuPrincipal = () => {
 
     return (
         <>
-            <AppBar position="fixed">
-                <Toolbar>
+            <AppBar position="fixed" className="app-bar">
+                <Toolbar className="toolbar">
                     <IconButton
                         edge="start"
                         color="inherit"
@@ -46,16 +64,6 @@ const MenuPrincipal = () => {
                         sx={{ mr: 2 }}
                     >
                         <MenuIcon />
-                    </IconButton>
-
-                    <IconButton
-                        edge="start"
-                        color="inherit"
-                        aria-label="home"
-                        onClick={() => navigate("/home")}
-                        sx={{ mr: 2 }}
-                    >
-                        <HomeIcon />
                     </IconButton>
 
                     <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
@@ -71,17 +79,13 @@ const MenuPrincipal = () => {
                 </Toolbar>
             </AppBar>
 
-            <Drawer anchor="left" open={isMenuOpen} onClose={toggleDrawer(false)}>
-                <div style={{ width: "250px", display: "flex", flexDirection: "column" }}>
-                    <div style={{ padding: "50px", background: "white" }}>
-                        <img src={logoini} alt="Logo UNNA" style={{ height: "140px" }} />
+            <Drawer anchor="left" open={isMenuOpen} onClose={toggleDrawer(false)} className="drawer">
+                <div className="drawer">
+                    <div className="logo-container">
+                        <img src={logoini} alt="Logo UNNA" className="logo" />
                     </div>
-
-                    <IconButton onClick={toggleDrawer(false)} sx={{ justifyContent: "flex-end" }}>
-                        <CloseIcon />
-                    </IconButton>
-
-                    <List style={{ width: "250px" }}>
+                    
+                    <List className="drawer-list">
                         <ListItemButton onClick={() => setShowAgendamentoMenu(!showAgendamentoMenu)}>
                             <ListItemIcon>
                                 <CalendarTodayIcon />
@@ -91,13 +95,13 @@ const MenuPrincipal = () => {
                         </ListItemButton>
                         <Collapse in={showAgendamentoMenu} timeout="auto" unmountOnExit>
                             <List component="div" disablePadding>
-                                <ListItemButton sx={{ pl: 4 }} onClick={() => handleNavigate("/verificar-agendamentos")}>
+                                <ListItemButton className="collapse-menu" onClick={() => handleNavigate("/verificar-agendamentos")}>
                                     <ListItemText primary="Verificar Agenda" />
                                 </ListItemButton>
-                                <ListItemButton sx={{ pl: 4 }} onClick={() => handleNavigate("/agendamentos")}>
+                                <ListItemButton className="collapse-menu" onClick={() => handleNavigate("/agendamentos")}>
                                     <ListItemText primary="Agendar Paciente" />
                                 </ListItemButton>
-                                <ListItemButton sx={{ pl: 4 }} onClick={() => handleNavigate("/gestao-horario")}>
+                                <ListItemButton className="collapse-menu" onClick={() => handleNavigate("/gestao-horario")}>
                                     <ListItemText primary="Gerenciar Horários" />
                                 </ListItemButton>
                             </List>
@@ -112,19 +116,16 @@ const MenuPrincipal = () => {
                         </ListItemButton>
                         <Collapse in={showUserCrudMenu} timeout="auto" unmountOnExit>
                             <List component="div" disablePadding>
-                                {/* <ListItemButton sx={{ pl: 4 }} onClick={() => handleNavigate("/cadastro-usuario")}>
+                                <ListItemButton className="collapse-menu" onClick={() => handleNavigate("/cadastro-usuario")}>
                                     <ListItemText primary="Cadastrar" />
-                                </ListItemButton> */}
-
-                                <ListItemButton sx={{ pl: 4 }} onClick={() => handleNavigate("/usuarios-cadastrados")}>
+                                </ListItemButton>
+                                <ListItemButton className="collapse-menu" onClick={() => handleNavigate("/usuarios-cadastrados")}>
                                     <ListItemText primary="Colaboradores" />
                                 </ListItemButton>
-
-                                <ListItemButton sx={{ pl: 4 }} onClick={() => handleNavigate("/gerenciar-funcoes")}>
+                                <ListItemButton className="collapse-menu" onClick={() => handleNavigate("/gerenciar-funcoes")}>
                                     <ListItemText primary="Função" />
                                 </ListItemButton>
-
-                                <ListItemButton sx={{ pl: 4 }} onClick={() => handleNavigate("/pacientes-cadastrados")}>
+                                <ListItemButton className="collapse-menu" onClick={() => handleNavigate("/pacientes-cadastrados")}>
                                     <ListItemText primary="Pacientes" />
                                 </ListItemButton>
                             </List>
@@ -136,16 +137,16 @@ const MenuPrincipal = () => {
                             </ListItemIcon>
                             <ListItemText primary="Prontuários" />
                         </ListItemButton>
-
-                        {user && (
-                            <ListItemButton onClick={logOut}>
-                                <ListItemIcon>
-                                    <ExitToAppIcon />
-                                </ListItemIcon>
-                                <ListItemText primary="Sair" />
-                            </ListItemButton>
-                        )}
                     </List>
+
+                    {user && (
+                        <ListItemButton onClick={logOut} style={{ justifyContent: "center" }}>
+                            <ListItemIcon>
+                                <ExitToAppIcon />
+                            </ListItemIcon>
+                            <ListItemText primary="Sair" />
+                        </ListItemButton>
+                    )}
                 </div>
             </Drawer>
             <Toolbar />

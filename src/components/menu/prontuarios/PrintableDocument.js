@@ -3,15 +3,14 @@ import { Modal, Box, Button, Typography } from '@mui/material';
 import { useReactToPrint } from 'react-to-print';
 import './PrintableDocumentStyles.css';
 import logoClinica from '../../../img/logoprint.jpeg';
-import { formatInTimeZone } from 'date-fns-tz';
-
-// Define o fuso horário
-const timeZone = 'America/Sao_Paulo';
+import { format } from 'date-fns';
+// eslint-disable-next-line
+import { parseISO, isValid } from 'date-fns';
 
 // Função para obter a data atual formatada
 function getBrazilTime() {
   const now = new Date();
-  return formatInTimeZone(now, timeZone, 'dd/MM/yyyy');
+  return format(now, 'dd/MM/yyyy');
 }
 
 // Componente funcional para o documento imprimível
@@ -23,9 +22,8 @@ const PrintableDocument = forwardRef(({
   titulo, // Título do documento
   medico, // Dados do médico
   includeDate, // Booleano para incluir data de impressão
-  onDocumentPrinted = () => {}, // Callback após a impressão do documento
-  zIndex = 1300, // Índice Z para o modal
-  tipoDocumento // Tipo do documento a ser impresso
+  onDocumentPrinted, // Callback após a impressão do documento
+  zIndex = 1300 // Índice Z para o modal
 }, ref) => {
   const [currentIndex, setCurrentIndex] = useState(0); // Índice do conteúdo atual
   const printRef = useRef(); // Referência para o elemento imprimível
@@ -46,7 +44,7 @@ const PrintableDocument = forwardRef(({
     content: () => printRef.current,
     documentTitle: 'Documento Médico',
     onAfterPrint: () => {
-      if (conteudo && currentIndex < conteudo.length - 1) {
+      if (currentIndex < conteudo.length - 1) {
         setCurrentIndex(currentIndex + 1); // Avança para o próximo conteúdo
       } else {
         setCurrentIndex(0); // Reseta o índice do conteúdo
@@ -74,13 +72,63 @@ const PrintableDocument = forwardRef(({
       <Box className="modal-wrapper">
         {/* Elemento imprimível */}
         <Box className="page" ref={printRef}>
-          <Header />
-          <DocumentTitle titulo={titulo} />
-          <PatientInfo paciente={paciente} includeDate={includeDate} />
-          <PrescriptionHeader tipoDocumento={tipoDocumento} />
-          <PrescriptionContent conteudo={conteudo[currentIndex]} />
-          <DoctorSignature medico={medico} />
-          <Footer />
+          {/* Cabeçalho do documento */}
+          <Box className="header">
+            <img className="logo" src={logoClinica} alt="Logo da Clínica" />
+            <Box className="title">
+              <Box component="span" className="primary-color">UNNA - EXCELÊNCIA EM SAÚDE</Box>
+            </Box>
+          </Box>
+
+          {/* Conteúdo do documento */}
+          <Box className="content">
+            {/* Linha sutil */}
+            <Box className="subtle-line"></Box>
+            <Box sx={{ textAlign: 'center', marginBottom: 2 }}>
+              <Typography className="main-title">{titulo}</Typography>
+            </Box>
+
+            {/* Informações do paciente */}
+            <Box className="section-content">
+              <Box className="section-title">Paciente:</Box>
+              <Box>{paciente?.nome}</Box>
+            </Box>
+
+            {/* Cabeçalho da prescrição */}
+            <Box className="prescription-header">
+              <Typography className="prescription-title">
+                {titulo === 'Solicitação de exame' ? 'Pedido de Exame' : 'Prescrição'}
+              </Typography>
+              {includeDate && (
+                <Typography className="print-date">Data de Impressão: {getBrazilTime()}</Typography>
+              )}
+            </Box>
+            <hr />
+
+            {/* Conteúdo da prescrição */}
+            <Box className="section-content">
+              <Box dangerouslySetInnerHTML={{ __html: conteudo[currentIndex] }} />
+            </Box>
+          </Box>
+
+          {/* Espaçamento */}
+          <Box className="spacer"></Box>
+
+          {/* Assinatura do médico e informações */}
+          <Box className="doctor-signature">
+            <Box component="span" className="signature-line">____________________________</Box>
+            <Box component="span" className="doctor-info">{`Dr(a). ${medico?.nome} - CRM: ${medico?.crm}`}</Box>
+          </Box>
+
+          {/* Rodapé do documento */}
+          <Box className="footer">
+            <hr />
+            <Box component="span" sx={{ display: 'block', textAlign: 'center' }}>
+              Rua 23 de Maio, 398 - Guararema | SP | CEP 08900-000
+              <br />
+              Tel: 11 2626.0606 | 99910.7781 - E-mail: contato@unnasaude.com.br
+            </Box>
+          </Box>
         </Box>
 
         {/* Botões de impressão e cancelamento */}
@@ -96,75 +144,5 @@ const PrintableDocument = forwardRef(({
     </Modal>
   );
 });
-
-// Cabeçalho do documento
-const Header = () => (
-  <Box className="header">
-    <img className="logo" src={logoClinica} alt="Logo da Clínica" />
-    <Box className="title">
-      <Box component="span" className="primary-color title-text">UNNA - EXCELÊNCIA EM SAÚDE</Box>
-    </Box>
-  </Box>
-);
-
-// Título do documento
-const DocumentTitle = ({ titulo }) => (
-  <Box className="document-title">
-    <Typography className="main-title">{titulo}</Typography>
-  </Box>
-);
-
-// Informações do paciente e data de impressão
-const PatientInfo = ({ paciente, includeDate }) => (
-  <Box className="patient-info-container">
-    <Box className="patient-info">
-      <Typography className="label">Paciente:</Typography>
-      <Typography className="info">{paciente?.nome}</Typography>
-    </Box>
-    {includeDate && (
-      <Box className="print-date">
-        <Typography className="label">Data de Impressão:</Typography>
-        <Typography className="info">{getBrazilTime()}</Typography>
-      </Box>
-    )}
-  </Box>
-);
-
-// Cabeçalho da prescrição
-const PrescriptionHeader = ({ tipoDocumento }) => (
-  <Box className="prescription-header">
-    <Typography className="prescription-title">
-      {tipoDocumento === 'exame' ? 'Exame(s):' : 'Pedido'}
-    </Typography>
-    <hr />
-  </Box>
-);
-
-// Conteúdo da prescrição
-const PrescriptionContent = ({ conteudo }) => (
-  <Box className="section-content">
-    <Box dangerouslySetInnerHTML={{ __html: conteudo }} />
-  </Box>
-);
-
-// Assinatura do médico
-const DoctorSignature = ({ medico }) => (
-  <Box className="doctor-signature">
-    <Box component="span" className="signature-line">____________________________</Box>
-    <Box component="span" className="doctor-info">{`${medico?.nome} - CRM: ${medico?.crm}`}</Box>
-  </Box>
-);
-
-// Rodapé do documento
-const Footer = () => (
-  <Box className="footer">
-    <hr />
-    <Box component="span" className="footer-info">
-      Rua 23 de Maio, 398 - Guararema | SP | CEP 08900-000
-      <br />
-      Tel: 11 2626.0606 | 99910.7781 - E-mail: contato@unnasaude.com.br
-    </Box>
-  </Box>
-);
 
 export default PrintableDocument;

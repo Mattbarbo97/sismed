@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Box, Grid, Modal, Paper, Typography, Button, Checkbox, FormControlLabel } from "@mui/material";
+import { Box, Grid, Modal, Paper, Typography, Button, Checkbox, FormControlLabel, Link } from "@mui/material";
 import formatDate from "../../../utils/formatDate";
 import formatPhone from "../../../utils/formatPhone";
 import { useUser } from "../../../context/UserContext";
@@ -35,6 +35,7 @@ const ViewProntuarioModal = ({ prontuario, open, onClose }) => {
       console.error('Prontuário não definido');
     } else {
       console.log("Prontuário:", prontuario);
+      console.log("Prontuário Anexos:", prontuario.anexos);
     }
   }, [prontuario]);
 
@@ -131,8 +132,6 @@ const ViewProntuarioModal = ({ prontuario, open, onClose }) => {
       </Modal>
     );
   }
-
-  console.log("Prontuário com arquivo:", prontuario.file);
 
   return (
     <>
@@ -231,9 +230,7 @@ const ViewProntuarioModal = ({ prontuario, open, onClose }) => {
               gap: 2,
             }}
           >
-            <Typography variant="h5">
-              Detalhes do prontuário:
-            </Typography>
+            <Typography variant="h5">Detalhes do prontuário:</Typography>
             <Grid
               container
               spacing={0}
@@ -378,6 +375,48 @@ const ViewProntuarioModal = ({ prontuario, open, onClose }) => {
               </Grid>
             </Box>
           )}
+          {prontuario.anexos?.length > 0 && (
+            <Box
+              mb={2}
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                flexDirection: "column",
+                gap: 2,
+              }}
+            >
+              <Typography variant="h5">
+                Anexos:
+              </Typography>
+              <Grid
+                container
+                spacing={0}
+                sx={{
+                  backgroundColor: "#f5f5f5",
+                  padding: 2,
+                  justifyContent: "space-between",
+                  gap: 3,
+                }}
+              >
+                {prontuario.anexos?.length > 0 ? (
+                  prontuario.anexos.map((anexo, index) => (
+                    <Grid item xs={12} key={index}>
+                      <Typography variant="body1">
+                        <b>Anexo {index + 1}:</b>{" "}
+                        <Link href={anexo.url} target="_blank" rel="noopener noreferrer">
+                          {anexo.nome}
+                        </Link>
+                      </Typography>
+                    </Grid>
+                  ))
+                ) : (
+                  <Typography variant="body1">
+                    Nenhum anexo cadastrado
+                  </Typography>
+                )}
+              </Grid>
+            </Box>
+          )}
           <Box
             mb={2}
             sx={{
@@ -405,42 +444,6 @@ const ViewProntuarioModal = ({ prontuario, open, onClose }) => {
               </Grid>
             </Grid>
           </Box>
-          {prontuario.file && (
-            <Box
-              mb={2}
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                flexDirection: "column",
-                gap: 2,
-              }}
-            >
-              <Typography variant="h5">Arquivo:</Typography>
-              <Grid
-                container
-                spacing={0}
-                sx={{
-                  backgroundColor: "#f5f5f5",
-                  padding: 2,
-                  justifyContent: "space-between",
-                  gap: 3,
-                }}
-              >
-                <Grid item xs={12}>
-                  <Typography variant="body1">
-                    <a href={prontuario.file} target="_blank" rel="noopener noreferrer">Download do Arquivo</a>
-                  </Typography>
-                </Grid>
-                {prontuario.fileCaption && (
-                  <Grid item xs={12}>
-                    <Typography variant="body1">
-                      <b>Legenda do Arquivo:</b> {prontuario.fileCaption}
-                    </Typography>
-                  </Grid>
-                )}
-              </Grid>
-            </Box>
-          )}
         </Paper>
       </Modal>
       {printData && (

@@ -1,23 +1,22 @@
 import React, { useState } from 'react';
 import {
-  Box, Button, IconButton, Modal, Paper, Typography, TextField, InputAdornment, Checkbox, FormControlLabel
+  Box, Button, IconButton, Modal, Paper, Typography, TextField, InputAdornment, Checkbox, FormControlLabel, CircularProgress
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import PrintableDocument from './PrintableDocument';
-import ReceitaControleEspecial from './ReceituarioControleEspecial';
-import { formatInTimeZone } from 'date-fns-tz';
+import { format } from 'date-fns';
 import { useUser } from '../../../context/UserContext';
-import { storage } from '../../../firebase';  // Importação do Firebase Storage
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-
+import { storage } from "../../../firebase"; // Importando o firebase storage configurado
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+// eslint-disable-next-line
 const timeZone = 'America/Sao_Paulo';
 
 function getBrazilTime() {
   const now = new Date();
-  return formatInTimeZone(now, timeZone, 'dd/MM/yyyy');
+  return format(now, 'dd/MM/yyyy');
 }
 
 const validationSchema = Yup.object().shape({
@@ -31,7 +30,7 @@ const validationSchema = Yup.object().shape({
       value: Yup.string().required("O campo não pode estar vazio, se não for preencher, remova o campo."),
     })
   ),
-  anotacoes: Yup.string().required("As Evolução são obrigatórias."),
+  anotacoes: Yup.string().required("As Evoluções são obrigatórias."),
 });
 
 const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
@@ -45,10 +44,9 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
   const [printTitle, setPrintTitle] = useState('');
   const [enableFileField, setEnableFileField] = useState(false);
   const [file, setFile] = useState(null);
-  const [filePath, setFilePath] = useState(null);
   const [fileCaption, setFileCaption] = useState("");
   const [openFileModal, setOpenFileModal] = useState(false);
-  const [openReceitaEspecialModal, setOpenReceitaEspecialModal] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const formik = useFormik({
     initialValues: {
@@ -60,40 +58,21 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
     },
     validationSchema: validationSchema,
     onSubmit: async (values) => {
-      // Converte as quebras de linha HTML para quebras de linha de texto
-      values.receitas = values.receitas.map(receita => ({
-        ...receita,
-        value: receita.value.replace(/<br>/g, '\n')
-      }));
-      values.exames = values.exames.map(exame => ({
-        ...exame,
-        value: exame.value.replace(/<br>/g, '\n')
-      }));
-
-      if (file) {
-        const fileRef = ref(storage, `files/${file.name}`);
-        const uploadTask = uploadBytesResumable(fileRef, file);
-
-        uploadTask.on('state_changed', 
-          (snapshot) => {
-            // Handle progress
-          }, 
-          (error) => {
-            console.error("File upload error: ", error);
-          }, 
-          async () => {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            console.log("File uploaded successfully: ", downloadURL);
-            handleSave({ ...values, file: downloadURL, fileCaption });
-            formik.resetForm();
-            setFile(null);
-            setFilePath(null);
-            setFileCaption("");
-          }
-        );
-      } else {
-        handleSave({ ...values, file: null, fileCaption });
+      setIsUploading(true);
+      let fileUrl = null;
+      try {
+        if (file) {
+          const formattedDate = values.dataAtendimento.split('/').reverse().join('-'); // Corrigir a data para o formato correto
+          fileUrl = await uploadFileToFirebase(file, paciente.id, formattedDate);
+        }
+        handleSave({ ...values, fileUrl, fileCaption, paciente });
         formik.resetForm();
+        setFile(null);
+        setFileCaption("");
+      } catch (error) {
+        console.error("Erro ao fazer upload do arquivo:", error);
+      } finally {
+        setIsUploading(false);
       }
     },
   });
@@ -105,7 +84,7 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
       const lines = updatedValue.split('\n');
       const newLineNumber = lines.length + 1;
       updatedValue += `\n${newLineNumber}- `;
-      formik.setFieldValue(`${field}[index].value`, updatedValue);
+      formik.setFieldValue(`${field}[${index}].value`, updatedValue);
     }
   };
 
@@ -169,25 +148,15 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
   };
 
   const handleFileUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setFilePath(URL.createObjectURL(file));
-      setFile(file);
+    const uploadedFile = event.target.files[0];
+    if (uploadedFile) {
+      setFile(uploadedFile);
     }
   };
 
   return (
     <>
-      <Modal
-        open={open}
-        onClose={onClose}
-        BackdropProps={{
-          style: {
-            backgroundColor: 'rgba(255, 255, 255, 0.8)', // Fundo branco semi-transparente
-          },
-        }}
-        sx={{ zIndex: 1300 }}
-      >
+      <Modal open={open} onClose={onClose}>
         <Paper
           sx={{
             position: "absolute",
@@ -199,11 +168,10 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
             transform: "translate(-50%, -50%)",
             maxHeight: "80vh",
             overflowY: "auto",
-            zIndex: 1400,
           }}
         >
           <Typography variant="h6" style={{ textAlign: "center" }}>Novo Atendimento</Typography>
-          <Typography variant="subtitle1">Paciente: {paciente?.nome}</Typography>
+          <Typography variant="subtitle1">Paciente: {paciente.nome}</Typography>
           <form onSubmit={formik.handleSubmit}>
             <Typography variant="h6">Receitas</Typography>
             <Box display="flex" flexDirection="column" alignItems="center" gap={2} sx={{ marginBottom: 2 }}>
@@ -241,17 +209,10 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
               <Box display="flex" alignItems="center" gap={1} sx={{ mt: 2 }}>
                 <Button
                   variant="contained"
+                  color="secondary"
                   onClick={imprimirReceita}
-                  className="custom-button"  // Adiciona a classe CSS
                 >
                   Imprimir Receita
-                </Button>
-                <Button
-                  variant="contained"
-                  onClick={() => setOpenReceitaEspecialModal(true)}
-                  className="custom-button"  // Adiciona a classe CSS
-                >
-                  Receita de Controle Especial
                 </Button>
               </Box>
             </Box>
@@ -294,7 +255,6 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
                 <Button
                   variant="contained"
                   onClick={imprimirExames}
-                  className="custom-button"  // Adiciona a classe CSS
                 >
                   Imprimir Exames
                 </Button>
@@ -342,7 +302,7 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
                 />
                 {file && (
                   <>
-                    <a href={filePath} target="_blank" rel="noopener noreferrer">{file.name}</a>
+                    <Typography>{file.name}</Typography>
                     <TextField
                       label="Legenda do Arquivo"
                       value={fileCaption}
@@ -366,8 +326,9 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
                 variant="contained"
                 color="primary"
                 type="submit"
+                disabled={isUploading} // Desabilitar botão enquanto estiver carregando
               >
-                Salvar Prontuário
+                {isUploading ? <CircularProgress size={24} /> : "Salvar Prontuário"}
               </Button>
               <Button
                 variant="contained"
@@ -375,9 +336,10 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
                   backgroundColor: "#f44336",
                   "&:hover": {
                     backgroundColor: "#d32f2f",
-                  },
-                }}
+                  }}
+                }
                 onClick={() => setConfirmClear(true)}
+                disabled={isUploading} // Desabilitar botão enquanto estiver carregando
               >
                 Limpar tudo
               </Button>
@@ -425,9 +387,6 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
               color="primary"
               onClick={() => {
                 formik.resetForm();
-                setFile(null);
-                setFilePath(null);
-                setFileCaption("");
                 setConfirmClear(false);
               }}
             >
@@ -439,8 +398,8 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
                 backgroundColor: "#f44336",
                 "&:hover": {
                   backgroundColor: "#d32f2f",
-                },
-              }}
+                }}
+              }
               onClick={() => setConfirmClear(false)}
             >
               Não
@@ -462,17 +421,6 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
         />
       )}
 
-      <ReceitaControleEspecial
-        open={openReceitaEspecialModal}
-        onClose={() => setOpenReceitaEspecialModal(false)}
-        paciente={paciente}
-        conteudo={printContentList}
-        titulo='Receita de Controle Especial'
-        medico={{ nome: user?.nome, crm: user?.identificacaoProfissional }}
-        includeDate={true}
-        onDocumentPrinted={() => handleDocumentPrinted('receita de controle especial')}
-      />
-
       <Modal open={openFileModal} onClose={() => setOpenFileModal(false)}>
         <Paper
           sx={{
@@ -485,11 +433,7 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
             p: 4,
           }}
         >
-          {filePath ? (
-            <a href={filePath} target="_blank" rel="noopener noreferrer">{file.name}</a>
-          ) : (
-            <Typography variant="body1">Nenhum arquivo carregado</Typography>
-          )}
+          <embed src={file} type="application/pdf" width="100%" height="600px" />
         </Paper>
       </Modal>
     </>
@@ -497,3 +441,11 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
 };
 
 export default MedicalConsultationModal;
+
+const uploadFileToFirebase = async (file, pacienteId, dataAtendimento) => {
+  const date = new Date(dataAtendimento).toISOString().split('T')[0];
+  const storageRef = ref(storage, `prontuarios/${pacienteId}/${date}/${file.name}`);
+  const snapshot = await uploadBytes(storageRef, file);
+  const url = await getDownloadURL(snapshot.ref);
+  return url;
+};

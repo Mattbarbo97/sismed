@@ -77,9 +77,7 @@ const ModalDetalhesUsuario = ({
 }) => {
     const [editandoUsuario, setEditandoUsuario] = useState(usuario);
     const [especialidades, setEspecialidades] = useState([]);
-    const [funcoes, setFuncoes] = useState([]);
     const [possuiEspecialidade, setPossuiEspecialidade] = useState(false);
-    const [especialidadeMultipla, setEspecialidadeMultipla] = useState(false);
 
     useEffect(() => {
         const fetchEspecialidades = async () => {
@@ -89,18 +87,9 @@ const ModalDetalhesUsuario = ({
             setEspecialidades(especialidadesList);
         };
 
-        const fetchFuncoes = async () => {
-            const db = getFirestore();
-            const funcoesSnapshot = await getDocs(collection(db, "dbo.usuario"));
-            const funcoesList = funcoesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setFuncoes(funcoesList);
-        };
-
         fetchEspecialidades();
-        fetchFuncoes();
         setEditandoUsuario(usuario);
-        setPossuiEspecialidade(usuario.especialidades && usuario.especialidades.length > 0);
-        setEspecialidadeMultipla(usuario.especialidades && usuario.especialidades.length > 1);
+        setPossuiEspecialidade(Boolean(usuario.especialidade));
     }, [usuario]);
 
     const handleChange = (e) => {
@@ -112,36 +101,12 @@ const ModalDetalhesUsuario = ({
         const checked = e.target.checked;
         setPossuiEspecialidade(checked);
         if (!checked) {
-            setEditandoUsuario((prev) => ({ ...prev, especialidades: [] }));
+            setEditandoUsuario((prev) => ({ ...prev, especialidade: "" }));
         }
     };
 
-    const handleEspecialidadeMultiplaChange = (e) => {
-        const checked = e.target.checked;
-        setEspecialidadeMultipla(checked);
-    };
-
-    const addEspecialidade = () => {
-        setEditandoUsuario((prev) => ({
-            ...prev,
-            especialidades: [...(prev.especialidades || []), ""]
-        }));
-    };
-
-    const handleEspecialidadeChange = (index, value) => {
-        setEditandoUsuario((prev) => {
-            const updatedEspecialidades = [...prev.especialidades];
-            updatedEspecialidades[index] = value;
-            return { ...prev, especialidades: updatedEspecialidades };
-        });
-    };
-
-    const removeEspecialidade = (index) => {
-        setEditandoUsuario((prev) => {
-            const updatedEspecialidades = [...prev.especialidades];
-            updatedEspecialidades.splice(index, 1);
-            return { ...prev, especialidades: updatedEspecialidades };
-        });
+    const handleEspecialidadeChange = (e) => {
+        setEditandoUsuario((prev) => ({ ...prev, especialidade: e.target.value }));
     };
 
     const handleClose = () => {
@@ -208,20 +173,15 @@ const ModalDetalhesUsuario = ({
                             value={editandoUsuario?.email || ""}
                             onChange={handleChange}
                         />
-                        <FormControl fullWidth margin="normal">
-                            <InputLabel>Função</InputLabel>
-                            <Select
-                                value={editandoUsuario?.funcao || ""}
-                                onChange={handleChange}
-                                name="funcao"
-                            >
-                                {funcoes.map((func) => (
-                                    <MenuItem key={func.id} value={func.nome}>
-                                        {func.nome}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
+                        <TextField
+                            margin="dense"
+                            label="Função"
+                            type="text"
+                            fullWidth
+                            name="funcao"
+                            value={editandoUsuario?.funcao || ""}
+                            onChange={handleChange}
+                        />
                         <TextField
                             margin="dense"
                             label="CEP"
@@ -286,39 +246,19 @@ const ModalDetalhesUsuario = ({
                             label="Possui especialidade?"
                         />
                         {possuiEspecialidade && (
-                            <div>
-                                {editandoUsuario.especialidades &&
-                                    editandoUsuario.especialidades.map((especialidade, index) => (
-                                        <Box key={index} display="flex" alignItems="center">
-                                            <FormControl fullWidth margin="normal">
-                                                <InputLabel>Especialidade</InputLabel>
-                                                <Select
-                                                    value={especialidade}
-                                                    onChange={(e) => handleEspecialidadeChange(index, e.target.value)}
-                                                >
-                                                    {especialidades.map((esp) => (
-                                                        <MenuItem key={esp.id} value={esp.nome}>
-                                                            {esp.nome}
-                                                        </MenuItem>
-                                                    ))}
-                                                </Select>
-                                            </FormControl>
-                                            <IconButton onClick={() => removeEspecialidade(index)}>
-                                                <DeleteIcon />
-                                            </IconButton>
-                                        </Box>
+                            <FormControl fullWidth margin="normal">
+                                <InputLabel>Especialidade</InputLabel>
+                                <Select
+                                    value={editandoUsuario.especialidade}
+                                    onChange={handleEspecialidadeChange}
+                                >
+                                    {especialidades.map((esp) => (
+                                        <MenuItem key={esp.id} value={esp.id}>
+                                            {esp.nome}
+                                        </MenuItem>
                                     ))}
-                                <Button onClick={addEspecialidade}>Adicionar Especialidade</Button>
-                                <FormControlLabel
-                                    control={
-                                        <Checkbox
-                                            checked={especialidadeMultipla}
-                                            onChange={handleEspecialidadeMultiplaChange}
-                                        />
-                                    }
-                                    label="Possui mais de uma especialidade?"
-                                />
-                            </div>
+                                </Select>
+                            </FormControl>
                         )}
                     </>
                 ) : (
@@ -335,10 +275,7 @@ const ModalDetalhesUsuario = ({
                         <Typography>Cidade: {usuario?.cidade}</Typography>
                         <Typography>Estado: {usuario?.estado}</Typography>
                         <Typography>Telefone: {usuario?.telefone}</Typography>
-                        {usuario?.especialidades &&
-                            usuario.especialidades.map((especialidade, index) => (
-                                <Typography key={index}>Especialidade: {especialidade}</Typography>
-                            ))}
+                        <Typography>Especialidade: {usuario?.especialidade}</Typography>
                     </>
                 )}
             </DialogContent>
@@ -371,17 +308,15 @@ const UsuariosCadastrados = () => {
         try {
             const snapshot = await getDocs(usuariosCollectionRef);
             const usuariosList = [];
+
             for (const docSnap of snapshot.docs) {
                 const userData = docSnap.data();
-                console.log("Dados do Colaborador:", userData); // Adicionar este log para verificar os dados do Colaborador
-                // Inicializa a propriedade "funcao" como uma string vazia caso não exista
                 userData.funcao = userData.funcao || "";
-                userData.ativo = userData.ativo !== false; // Define o usuário como ativo se a propriedade não existir
+                userData.ativo = userData.ativo !== false;
+
                 // Busca o nome da função usando o idFuncao na coleção dbo.usuario
                 const docRefFuncao = doc(firestore, "dbo.usuario", userData.idFuncao);
-                console.log("Referência do documento da função:", docRefFuncao); // Adicionar este log para verificar a referência do documento
                 const docSnapFuncao = await getDoc(docRefFuncao);
-                console.log("Snapshot da função:", docSnapFuncao); // Adicionar este log para verificar o snapshot da função
                 if (docSnapFuncao.exists()) {
                     const funcaoData = docSnapFuncao.data();
                     userData.funcao = funcaoData.nome || "";
@@ -408,10 +343,10 @@ const UsuariosCadastrados = () => {
         }
         setLoading(false);
     };
-// eslint-disable-next-line
+           // eslint-disable-next-line
     const handleSalvarUsuario = async (dadosUsuario) => {
         try {
-            console.log(dadosUsuario);
+            console.log(dadosUsuario); // Apenas para depuração
             fetchUsuarios();
             handleFecharModalCadastro();
         } catch (error) {
@@ -513,7 +448,7 @@ const UsuariosCadastrados = () => {
                 cpf: usuarioEditado.cpf,
                 funcao: usuarioEditado.funcao,
                 identificacaoProfissional: usuarioEditado.identificacaoProfissional || null,
-                especialidades: usuarioEditado.especialidades || [],
+                especialidade: usuarioEditado.especialidade || "",
             });
             setUsuarios(
                 usuarios.map((user) =>
@@ -561,10 +496,12 @@ const UsuariosCadastrados = () => {
                         alignItems="left"
                         marginBottom="2rem"
                     >
+                        {/* Título alinhado à esquerda */}
                         <Typography variant="h4" gutterBottom>
                             Colaboradores Cadastrados
                         </Typography>
 
+                        {/* Caixa para a pesquisa e o botão, alinhados à direita */}
                         <Box display="flex" alignItems="center">
                             <TextField
                                 label="Pesquisar Colaborador"
@@ -585,7 +522,7 @@ const UsuariosCadastrados = () => {
                                         </InputAdornment>
                                     ),
                                 }}
-                                style={{ marginRight: "1rem" }}
+                                style={{ marginRight: "1rem" }} // Mantém espaço entre a barra de pesquisa e o botão
                             />
                             <Button
                                 variant="contained"
@@ -651,9 +588,11 @@ const UsuariosCadastrados = () => {
                                                 {usuario.email}
                                             </TableCell>
                                             <TableCell>{usuario.cpf}</TableCell>
+
                                             <TableCell>
-                                                {usuario.funcao || "Carregando..."}
+                                                {usuario.funcao || "Carregando..."} {/* Mostra "Carregando..." enquanto a função está sendo carregada */}
                                             </TableCell>
+
                                             <TableCell>
                                                 <AcoesUsuario
                                                     usuario={usuario}
@@ -669,6 +608,7 @@ const UsuariosCadastrados = () => {
                         </Table>
                     </TableContainer>
 
+                    {/* cadastro de usuario do modal */}
                     <Dialog
                         open={modalCadastroAberto}
                         onClose={handleFecharModalCadastro}

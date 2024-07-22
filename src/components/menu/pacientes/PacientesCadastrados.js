@@ -69,6 +69,7 @@ const PacientesCadastrados = () => {
     const [contadorPacientes, setContadorPacientes] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
     const [openSnackbar, setOpenSnackbar] = useState(false);
+    const [error, setError] = useState(null); // Novo estado para erros
     const itemsPerPage = 50;
     const styles = useStyles();
 
@@ -88,6 +89,7 @@ const PacientesCadastrados = () => {
                 setContadorPacientes(pacientesSemDuplicatas.length); // Atualiza o contador
             } catch (error) {
                 console.error(error);
+                setError("Erro ao carregar pacientes. Por favor, tente novamente mais tarde.");
             } finally {
                 setLoading(false);
             }
@@ -297,6 +299,16 @@ const PacientesCadastrados = () => {
         return (
             <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
                 <CircularProgress />
+            </Box>
+        );
+    }
+
+    if (error) {
+        return (
+            <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
+                <Typography variant="h6" color="error">
+                    {error}
+                </Typography>
             </Box>
         );
     }

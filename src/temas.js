@@ -1,8 +1,5 @@
 import { createTheme } from '@mui/material/styles';
 
-
-   
-
 const temaUNNA = createTheme({
   palette: {
     primary: {
@@ -35,12 +32,11 @@ const temaUNNA = createTheme({
     h4: {
       fontSize: '1.6rem',
       fontWeight: '600',
-      textAlign: 'left', // Adicione esta linha para alinhar à esquerda
+      textAlign: 'left', // Alinha à esquerda
     },
-
-
     // Continue definindo os estilos para h3, h4, h5, h6, subtitle1, subtitle2, body1, body2, etc.
   },
+  spacing: 8, // Adicione esta linha para definir a função spacing
   components: {
     MuiDrawer: { // Ou o componente que você usa para o menu
       styleOverrides: {
@@ -67,7 +63,6 @@ const temaUNNA = createTheme({
         }
       }
     },
-    
     // Adicione mais personalizações conforme necessário
   },
 });

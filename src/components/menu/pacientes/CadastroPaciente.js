@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Container, TextField, Button, Box, Typography, MenuItem, FormControl, InputLabel, Select, Checkbox, FormControlLabel, Alert, IconButton } from '@mui/material';
+import { Container, TextField, Button, Box, Typography, MenuItem, FormControl, InputLabel, Select, Checkbox, FormControlLabel, Alert, Snackbar, IconButton } from '@mui/material';
 import { getFirestore, collection, query, where, getDocs, orderBy, limit, doc, setDoc } from 'firebase/firestore';
 import axios from 'axios';
 import { createUserWithEmailAndPassword, getAuth } from 'firebase/auth';
@@ -26,12 +26,12 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
   const [temProntuarioAntigo, setTemProntuarioAntigo] = useState(false);
   const [prontuarioAntigo, setProntuarioAntigo] = useState('');
   const [localizacaoProntuarioAntigo, setLocalizacaoProntuarioAntigo] = useState('');
+  const [pacienteFalecido, setPacienteFalecido] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mensagemAlerta, setMensagemAlerta] = useState({ tipo: '', texto: '' });
   const [mostrarAlerta, setMostrarAlerta] = useState(false);
   const [naoPossuiRg, setNaoPossuiRg] = useState(false);
   const [naoPossuiCpf, setNaoPossuiCpf] = useState(false);
-  const [pacienteFalecido, setPacienteFalecido] = useState(false);
   const [errors, setErrors] = useState({});
 
   const styles = useStyles();
@@ -192,7 +192,7 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
         email,
         telefone: telefones.join(', '),
         numeroProntuario: prontuarioFormatado,
-        pacienteFalecido // Adicionando o campo pacienteFalecido
+        pacienteFalecido
       };
 
       if (temProntuarioAntigo) {
@@ -232,8 +232,6 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
       setNaoPossuiCpf(false);
       setPacienteFalecido(false);
 
-      // Atualiza a página após o cadastro
-      window.location.reload();
     } catch (error) {
       console.error('Erro ao salvar no Firestore:', error);
       exibirMensagemAlerta("error", "Erro: Ocorreu um erro ao cadastrar o paciente.");
@@ -245,11 +243,25 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
   return (
     <Container maxWidth="sm">
       <MenuPrincipal />
-      {mostrarAlerta && (
-        <Alert severity={mensagemAlerta.tipo} sx={{ marginBottom: 2 }}>
+      <Snackbar
+        anchorOrigin={{ vertical: 'center', horizontal: 'center' }}
+        open={mostrarAlerta}
+        autoHideDuration={6000}
+        onClose={() => setMostrarAlerta(false)}
+        sx={{ 
+          '& .MuiAlert-root': {
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            padding: '20px',
+            width: '100%',
+          }
+        }}
+      >
+        <Alert severity={mensagemAlerta.tipo} onClose={() => setMostrarAlerta(false)}>
           {mensagemAlerta.texto}
         </Alert>
-      )}
+      </Snackbar>
       <Box component="form" sx={styles.formContainer} noValidate autoComplete="off">
         <Typography variant="h6" gutterBottom>Dados do Paciente</Typography>
         <TextField
@@ -425,16 +437,10 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
           <Typography>Possui mais de um telefone?</Typography>
         </Box>
 
-        <Box display="flex" alignItems="center" marginTop={2}>
-          <FormControlLabel
-            control={<Checkbox checked={temProntuarioAntigo} onChange={(e) => setTemProntuarioAntigo(e.target.checked)} />}
-            label="Possui prontuário antigo?"
-          />
-          <FormControlLabel
-            control={<Checkbox checked={pacienteFalecido} onChange={(e) => setPacienteFalecido(e.target.checked)} />}
-            label="Paciente falecido"
-          />
-        </Box>
+        <FormControlLabel
+          control={<Checkbox checked={temProntuarioAntigo} onChange={(e) => setTemProntuarioAntigo(e.target.checked)} />}
+          label="Possui prontuário antigo?"
+        />
 
         {temProntuarioAntigo && (
           <>
@@ -456,6 +462,11 @@ const CadastroPaciente = ({ onSalvar, fecharModal }) => {
             />
           </>
         )}
+
+        <FormControlLabel
+          control={<Checkbox checked={pacienteFalecido} onChange={(e) => setPacienteFalecido(e.target.checked)} />}
+          label="Paciente falecido"
+        />
 
         <Button
           fullWidth

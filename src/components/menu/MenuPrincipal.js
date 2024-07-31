@@ -1,38 +1,48 @@
+import AssignmentIcon from "@mui/icons-material/Assignment";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import ExpandLess from "@mui/icons-material/ExpandLess";
+import ExpandMore from "@mui/icons-material/ExpandMore";
+import GroupIcon from "@mui/icons-material/Group";
+import HomeIcon from "@mui/icons-material/Home";
+import MenuIcon from "@mui/icons-material/Menu";
+import AppBar from "@mui/material/AppBar";
+import Button from "@mui/material/Button";
+import Collapse from "@mui/material/Collapse";
+import Drawer from "@mui/material/Drawer";
+import IconButton from "@mui/material/IconButton";
+import List from "@mui/material/List";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import Toolbar from "@mui/material/Toolbar";
+import Typography from "@mui/material/Typography";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-    AppBar,
-    Button,
-    Collapse,
-    Drawer,
-    IconButton,
-    List,
-    ListItemButton,
-    ListItemIcon,
-    ListItemText,
-    Toolbar,
-    Typography
-} from "@mui/material";
-import {
-    Assignment as AssignmentIcon,
-    CalendarToday as CalendarTodayIcon,
-    ExitToApp as ExitToAppIcon,
-    ExpandLess,
-    ExpandMore,
-    Group as GroupIcon,
-    Menu as MenuIcon
-} from "@mui/icons-material";
 import logoini from "../../img/logoini.png";
+// eslint-disable-next-line
+import { ListSubheader } from '@mui/material';
+
+import CloseIcon from "@mui/icons-material/Close";
 import { useUser } from "../../context/UserContext";
-import './MenuPrincipal.css'; // Importando o CSS
 
 const MenuPrincipal = () => {
     const navigate = useNavigate();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showUserCrudMenu, setShowUserCrudMenu] = useState(false);
-    const [showAgendamentoMenu, setShowAgendamentoMenu] = useState(false);
+    // eslint-disable-next-line
+    const [showPatientCrudMenu, setShowPatientCrudMenu] = useState(false);
+    //   const [user, setUser] = useState(null);
 
     const { user, setUser } = useUser();
+
+    // useEffect(() => {
+    //     // Recupera o Colaborador do localStorage e atualiza o estado
+    //     const storedUser = localStorage.getItem("user");
+    //     if (storedUser) {
+    //         setUser(JSON.parse(storedUser));
+    //     }
+    // }, []);
 
     const logOut = () => {
         localStorage.removeItem("user");
@@ -41,7 +51,10 @@ const MenuPrincipal = () => {
     };
 
     const toggleDrawer = (open) => (event) => {
-        if (event.type === "keydown" && (event.key === "Tab" || event.key === "Shift")) {
+        if (
+            event.type === "keydown" &&
+            (event.key === "Tab" || event.key === "Shift")
+        ) {
             return;
         }
         setIsMenuOpen(open);
@@ -54,8 +67,8 @@ const MenuPrincipal = () => {
 
     return (
         <>
-            <AppBar position="fixed" className="app-bar">
-                <Toolbar className="toolbar">
+            <AppBar position="fixed">
+                <Toolbar>
                     <IconButton
                         edge="start"
                         color="inherit"
@@ -66,8 +79,24 @@ const MenuPrincipal = () => {
                         <MenuIcon />
                     </IconButton>
 
-                    <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                        {user ? `${user.nome} bem vindo(a)` : "Colaborador não logado"}
+                    <IconButton
+                        edge="start"
+                        color="inherit"
+                        aria-label="home"
+                        onClick={() => navigate("/home")}
+                        sx={{ mr: 2 }}
+                    >
+                        <HomeIcon />
+                    </IconButton>
+
+                    <Typography
+                        variant="h6"
+                        component="div"
+                        sx={{ flexGrow: 1 }}
+                    >
+                        {user
+                            ? `${user.nome} bem vindo(a)`
+                            : "Colaborador não logado"}
                     </Typography>
 
                     {user && (
@@ -77,79 +106,141 @@ const MenuPrincipal = () => {
                         </Button>
                     )}
                 </Toolbar>
-            </AppBar>
-
-            <Drawer anchor="left" open={isMenuOpen} onClose={toggleDrawer(false)} className="drawer">
-                <div className="drawer">
-                    <div className="logo-container">
-                        <img src={logoini} alt="Logo UNNA" className="logo" />
+            </AppBar>{" "}
+            {/* Adiciona espaço para o AppBar, evitando sobreposição do conteúdo */}
+            <Drawer
+                anchor="left"
+                open={isMenuOpen}
+                onClose={toggleDrawer(false)}
+            >
+                <div
+                    style={{
+                        width: "250px",
+                        display: "flex",
+                        flexDirection: "column",
+                    }}
+                >
+                    <div style={{ padding: "50px", background: "white" }}>
+                        <img
+                            src={logoini}
+                            alt="Logo UNNA"
+                            style={{ height: "140px" }}
+                        />
                     </div>
-                    
-                    <List className="drawer-list">
-                        <ListItemButton onClick={() => setShowAgendamentoMenu(!showAgendamentoMenu)}>
+
+                    <IconButton
+                        onClick={toggleDrawer(false)}
+                        sx={{ justifyContent: "flex-end" }}
+                    >
+                        <CloseIcon />
+                    </IconButton>
+
+                    <List style={{ width: "250px" }}>
+                        <ListItemButton
+                            onClick={() => handleNavigate("/agendamentos")}
+                        >
                             <ListItemIcon>
                                 <CalendarTodayIcon />
                             </ListItemIcon>
                             <ListItemText primary="Agendamentos" />
-                            {showAgendamentoMenu ? <ExpandLess /> : <ExpandMore />}
                         </ListItemButton>
-                        <Collapse in={showAgendamentoMenu} timeout="auto" unmountOnExit>
-                            <List component="div" disablePadding>
-                                <ListItemButton className="collapse-menu" onClick={() => handleNavigate("/verificar-agendamentos")}>
-                                    <ListItemText primary="Verificar Agenda" />
-                                </ListItemButton>
-                                <ListItemButton className="collapse-menu" onClick={() => handleNavigate("/agendamentos")}>
-                                    <ListItemText primary="Agendar Paciente" />
-                                </ListItemButton>
-                                <ListItemButton className="collapse-menu" onClick={() => handleNavigate("/gestao-horario")}>
-                                    <ListItemText primary="Gerenciar Horários" />
-                                </ListItemButton>
-                            </List>
-                        </Collapse>
-
-                        <ListItemButton onClick={() => setShowUserCrudMenu(!showUserCrudMenu)}>
+                        <ListItemButton
+                            onClick={() =>
+                                setShowUserCrudMenu(!showUserCrudMenu)
+                            }
+                        >
                             <ListItemIcon>
                                 <GroupIcon />
                             </ListItemIcon>
+
                             <ListItemText primary="Cadastros" />
                             {showUserCrudMenu ? <ExpandLess /> : <ExpandMore />}
                         </ListItemButton>
-                        <Collapse in={showUserCrudMenu} timeout="auto" unmountOnExit>
+                        <Collapse
+                            in={showUserCrudMenu}
+                            timeout="auto"
+                            unmountOnExit
+                        >
                             <List component="div" disablePadding>
-                                <ListItemButton className="collapse-menu" onClick={() => handleNavigate("/cadastro-usuario")}>
-                                    <ListItemText primary="Cadastrar" />
+                                <ListItemButton
+                                    sx={{ pl: 4 }}
+                                    onClick={() =>
+                                        handleNavigate("/cadastro-usuario")
+                                    }
+                                >
+                                    {/* <ListItemText primary="Cadastrar" /> */}
                                 </ListItemButton>
-                                <ListItemButton className="collapse-menu" onClick={() => handleNavigate("/usuarios-cadastrados")}>
+
+                                <ListItemButton
+                                    sx={{ pl: 4 }}
+                                    onClick={() =>
+                                        handleNavigate("/usuarios-cadastrados")
+                                    }
+                                >
                                     <ListItemText primary="Colaboradores" />
                                 </ListItemButton>
-                                <ListItemButton className="collapse-menu" onClick={() => handleNavigate("/gerenciar-funcoes")}>
+
+                                <ListItemButton
+                                    sx={{ pl: 4 }}
+                                    onClick={() =>
+                                        handleNavigate("/gerenciar-funcoes")
+                                    }
+                                >
                                     <ListItemText primary="Função" />
                                 </ListItemButton>
-                                <ListItemButton className="collapse-menu" onClick={() => handleNavigate("/pacientes-cadastrados")}>
+
+                                <ListItemButton
+                                    sx={{ pl: 4 }}
+                                    onClick={() =>
+                                        handleNavigate("/pacientes-cadastrados")
+                                    }
+                                >
                                     <ListItemText primary="Pacientes" />
                                 </ListItemButton>
+                            
                             </List>
                         </Collapse>
 
-                        <ListItemButton onClick={() => handleNavigate("/criar-prontuario")}>
-                            <ListItemIcon>
-                                <AssignmentIcon />
-                            </ListItemIcon>
-                            <ListItemText primary="Prontuários" />
-                        </ListItemButton>
-                    </List>
+                        
+                      
+                            {/*<List component="div" disablePadding>
+                                 <ListItemButton
+                                    sx={{ pl: 4 }}
+                                    onClick={() =>
+                                        handleNavigate("/cadastro-paciente")
+                                    }
+                                >
+                                    <ListItemText primary="Cadastrar Novo Paciente" />
+                                </ListItemButton> */}
 
-                    {user && (
-                        <ListItemButton onClick={logOut} style={{ justifyContent: "center" }}>
-                            <ListItemIcon>
-                                <ExitToAppIcon />
-                            </ListItemIcon>
-                            <ListItemText primary="Sair" />
-                        </ListItemButton>
-                    )}
+                                
+                        
+                          <List>
+                              <ListItemButton onClick={() => handleNavigate("/criar-prontuario")}>
+                                  <ListItemIcon>
+                                      <AssignmentIcon />
+                                  </ListItemIcon>
+                                  <ListItemText primary="Prontuários" />
+                              </ListItemButton>
+                              
+                              {/* Outros itens do submenu */}
+                          </List>
+
+                          
+                        {/* Botão de sair */}
+                        {user && (
+                            <ListItemButton onClick={logOut}>
+                                <ListItemIcon>
+                                    <ExitToAppIcon />
+                                </ListItemIcon>
+                                <ListItemText primary="Sair" />
+                            </ListItemButton>
+                        )}
+                    </List>
                 </div>
             </Drawer>
-            <Toolbar />
+            <Toolbar />{" "}
+            {/* Adiciona espaço para o AppBar, evitando sobreposição do conteúdo */}
         </>
     );
 };

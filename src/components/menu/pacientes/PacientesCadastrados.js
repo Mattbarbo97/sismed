@@ -69,7 +69,7 @@ const PacientesCadastrados = () => {
     const [contadorPacientes, setContadorPacientes] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
     const [openSnackbar, setOpenSnackbar] = useState(false);
-    const [error, setError] = useState(null); // Novo estado para erros
+    const [error, setError] = useState(null);
     const itemsPerPage = 50;
     const styles = useStyles();
 
@@ -86,7 +86,7 @@ const PacientesCadastrados = () => {
                 }));
                 const pacientesSemDuplicatas = await removerDuplicatas(pacientesList);
                 setPacientes(pacientesSemDuplicatas);
-                setContadorPacientes(pacientesSemDuplicatas.length); // Atualiza o contador
+                setContadorPacientes(pacientesSemDuplicatas.length);
             } catch (error) {
                 console.error(error);
                 setError("Erro ao carregar pacientes. Por favor, tente novamente mais tarde.");
@@ -158,19 +158,16 @@ const PacientesCadastrados = () => {
     };
 
     const handleDelete = async (paciente) => {
-        const confirmar = window.confirm("Tem certeza que deseja inativar este paciente?");
+        const confirmar = window.confirm("Tem certeza que deseja excluir permanentemente este paciente?");
         if (confirmar) {
             try {
-                const pacienteRef = doc(getFirestore(), "pacientes_cadastrados", paciente.id);
-                await updateDoc(pacienteRef, { ativo: false });
-                setPacientes(pacientes.map((item) =>
-                    item.id === paciente.id ? { ...item, ativo: false } : item
-                ));
-                setContadorPacientes(contadorPacientes - 1); // Atualiza o contador
-                alert("Paciente inativado com sucesso!");
+                await deleteDoc(doc(getFirestore(), "pacientes_cadastrados", paciente.id));
+                setPacientes(pacientes.filter((item) => item.id !== paciente.id));
+                setContadorPacientes(contadorPacientes - 1);
+                alert("Paciente excluído com sucesso!");
             } catch (error) {
-                console.error("Erro ao inativar paciente:", error);
-                alert("Erro ao inativar paciente.");
+                console.error("Erro ao excluir paciente:", error);
+                alert("Erro ao excluir paciente.");
             }
         }
     };
@@ -192,7 +189,7 @@ const PacientesCadastrados = () => {
     };
 
     const handleAdicionarPaciente = async (dadosPaciente) => {
-        if (isSubmitting) return;  // Evita múltiplas submissões
+        if (isSubmitting) return;
         if (!validateForm(dadosPaciente)) return;
 
         setIsSubmitting(true);
@@ -201,9 +198,9 @@ const PacientesCadastrados = () => {
             const docRef = await addDoc(collection(firestore, "pacientes_cadastrados"), dadosPaciente);
             const novoPaciente = { id: docRef.id, ...dadosPaciente };
             setPacientes((prevPacientes) => [...prevPacientes, novoPaciente]);
-            setContadorPacientes(contadorPacientes + 1); // Atualiza o contador
+            setContadorPacientes(contadorPacientes + 1);
             handleFecharModalCadastro();
-            setOpenSnackbar(true); // Exibe o Snackbar após adicionar o paciente
+            setOpenSnackbar(true);
         } catch (error) {
             console.error("Erro ao adicionar paciente:", error);
             alert("Erro ao adicionar paciente.");
@@ -345,7 +342,7 @@ const PacientesCadastrados = () => {
                                 color="primary"
                                 startIcon={<AddIcon />}
                                 onClick={handleAbrirModalCadastro}
-                                disabled={isSubmitting}  // Desabilita o botão enquanto está submetendo
+                                disabled={isSubmitting}
                             >
                                 Novo Paciente
                             </Button>
@@ -447,9 +444,12 @@ const PacientesCadastrados = () => {
                                         label="Nome"
                                         type="text"
                                         value={pacienteSelecionado.nome}
-                                        InputProps={{
-                                            readOnly: true,
-                                        }}
+                                        onChange={(e) =>
+                                            setPacienteSelecionado((prev) => ({
+                                                ...prev,
+                                                nome: e.target.value,
+                                            }))
+                                        }
                                         variant="outlined"
                                         error={!!errors.nome}
                                         helperText={errors.nome}
@@ -476,9 +476,12 @@ const PacientesCadastrados = () => {
                                         label="CPF"
                                         type="text"
                                         value={pacienteSelecionado.cpf || ''}
-                                        InputProps={{
-                                            readOnly: true,
-                                        }}
+                                        onChange={(e) =>
+                                            setPacienteSelecionado((prev) => ({
+                                                ...prev,
+                                                cpf: e.target.value,
+                                            }))
+                                        }
                                         variant="outlined"
                                         error={!!errors.cpf}
                                         helperText={errors.cpf}
@@ -489,9 +492,12 @@ const PacientesCadastrados = () => {
                                         label="RG"
                                         type="text"
                                         value={pacienteSelecionado.rg || ''}
-                                        InputProps={{
-                                            readOnly: true,
-                                        }}
+                                        onChange={(e) =>
+                                            setPacienteSelecionado((prev) => ({
+                                                ...prev,
+                                                rg: e.target.value,
+                                            }))
+                                        }
                                         variant="outlined"
                                     />
                                     <TextField

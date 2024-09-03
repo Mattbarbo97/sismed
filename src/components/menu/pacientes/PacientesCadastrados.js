@@ -424,6 +424,9 @@ const PacientesCadastrados = () => {
                                             <Typography>Localização do Prontuário Antigo: {pacienteSelecionado.localizacaoProntuarioAntigo}</Typography>
                                         </>
                                     )}
+                                    <Typography>
+                                        {pacienteSelecionado.falecido ? "Paciente Falecido" : ""}
+                                    </Typography>
                                 </>
                             )}
                         </DialogContent>
@@ -690,6 +693,20 @@ const PacientesCadastrados = () => {
                                             />
                                         </>
                                     )}
+                                    <FormControlLabel
+                                        control={
+                                            <Checkbox
+                                                checked={pacienteSelecionado.falecido || false}
+                                                onChange={(e) =>
+                                                    setPacienteSelecionado((prev) => ({
+                                                        ...prev,
+                                                        falecido: e.target.checked,
+                                                    }))
+                                                }
+                                            />
+                                        }
+                                        label="Paciente Falecido"
+                                    />
                                 </form>
                             )}
                         </DialogContent>

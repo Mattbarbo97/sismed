@@ -1,10 +1,10 @@
 /* eslint-disable */
 
 import React, { useState, useEffect } from 'react';
-import { getFirestore, collection, getDocs, doc, getDoc, addDoc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, addDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../firebase';
 import {
-  TextField, MenuItem, Button, FormControl, InputLabel, Select, Typography, Container, Box, Stepper, Step, StepLabel, IconButton, Modal, List, ListItem, ListItemText, Dialog, DialogActions, DialogContent, DialogTitle
+  TextField, MenuItem, Button, FormControl, InputLabel, Select, Typography, Container, Box, Stepper, Step, StepLabel, IconButton, List, ListItem, ListItemText, Dialog, DialogActions, DialogContent, DialogTitle
 } from '@mui/material';
 import { Autocomplete } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -67,7 +67,6 @@ function Agendamento() {
   const [activeStep, setActiveStep] = useState(0);
   const [tipoSelecao, setTipoSelecao] = useState('');
   const [opcaoAtendimento, setOpcaoAtendimento] = useState('');
-  const [servico, setServico] = useState('');
   const [Profissional, setProfissional] = useState('');
   const [data, setData] = useState('');
   const [funcoes, setFuncoes] = useState([]);
@@ -80,8 +79,6 @@ function Agendamento() {
   const [diasDisponiveis, setDiasDisponiveis] = useState([]);
   const [horarioSelecionado, setHorarioSelecionado] = useState('');
   const [events, setEvents] = useState([]);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [mostrarPacientes, setMostrarPacientes] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
   // Carregar dados de funções, especialidades e pacientes
@@ -217,7 +214,6 @@ function Agendamento() {
   const handleSelectEvent = (event) => {
     if (event && event.start) {
       setData(event.start); // Verifique se event.start é válido antes de definir o estado
-      setModalOpen(true);
     }
   };
 
@@ -311,15 +307,16 @@ function Agendamento() {
   return (
     <Container maxWidth="md">
       <MenuPrincipal />
-      <Box className="agendamento-container">
-        <Stepper activeStep={activeStep} className="stepper">
-          {['Serviço', 'Profissional', 'Data e Hora', 'Concluir'].map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
-        <form onSubmit={handleSubmit}>
+      <Box className="agendamento-container" display="flex">
+        <Box flex={1} marginRight={4}>
+          <Stepper activeStep={activeStep} className="stepper">
+            {['Serviço', 'Profissional', 'Data e Hora', 'Concluir'].map((label) => (
+              <Step key={label}>
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
+
           {activeStep === 0 && (
             <>
               <Box display="flex" alignItems="center" marginBottom={2}>
@@ -330,7 +327,7 @@ function Agendamento() {
                   onChange={handlePacienteChange}
                   style={{ flex: 1 }}
                 />
-                <IconButton color="primary" onClick={() => setMostrarPacientes(true)}>
+                <IconButton color="primary" onClick={() => {}}>
                   <AddIcon />
                 </IconButton>
               </Box>
@@ -386,23 +383,6 @@ function Agendamento() {
                 selectable
                 onSelectEvent={handleSelectEvent}
               />
-
-              {/* Modal de horários */}
-              {modalOpen && (
-                <div className="modal-overlay">
-                  <div className="modal-box">
-                    <button className="modal-close-button" onClick={() => setModalOpen(false)}>&times;</button>
-                    <Typography className="modal-title">Horários Disponíveis</Typography>
-                    <List>
-                      {gerarPeriodos(horariosDisponiveis[getDay(new Date(data))] || {}).map((horario, index) => (
-                        <ListItem button key={index} onClick={() => handleHorarioChange(horario)} className="list-item">
-                          <ListItemText primary={horario} />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </div>
-                </div>
-              )}
             </>
           )}
 
@@ -414,7 +394,21 @@ function Agendamento() {
               <Button variant="contained" color="primary" onClick={() => setActiveStep(activeStep + 1)}>Próximo</Button>
             )}
           </Box>
-        </form>
+        </Box>
+
+        {/* Horários ao lado do calendário */}
+        {activeStep === 2 && (
+          <Box flex={0.5} className="horarios-box" marginLeft={4}>
+            <Typography variant="h6" className="modal-title">Horários Disponíveis</Typography>
+            <List>
+              {gerarPeriodos(horariosDisponiveis[getDay(new Date(data))] || {}).map((horario, index) => (
+                <ListItem button key={index} onClick={() => handleHorarioChange(horario)} className="list-item">
+                  <ListItemText primary={horario} />
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        )}
 
         <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)}>
           <DialogTitle>Confirmação do Agendamento</DialogTitle>

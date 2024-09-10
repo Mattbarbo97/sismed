@@ -1,8 +1,10 @@
+/* eslint-disable */
+
 import React, { useState, useEffect } from 'react';
-import { getFirestore, doc, collection, getDocs, getDoc, addDoc } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, doc, getDoc, addDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../firebase';
 import {
-  TextField, MenuItem, Button, FormControl, InputLabel, Select, Typography, Container, Box, Stepper, Step, StepLabel, IconButton, Modal, List, ListItem, ListItemText
+  TextField, MenuItem, Button, FormControl, InputLabel, Select, Typography, Container, Box, Stepper, Step, StepLabel, IconButton, Modal, List, ListItem, ListItemText, Dialog, DialogActions, DialogContent, DialogTitle
 } from '@mui/material';
 import { Autocomplete } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -12,7 +14,6 @@ import format from 'date-fns/format';
 import parse from 'date-fns/parse';
 import startOfWeek from 'date-fns/startOfWeek';
 import getDay from 'date-fns/getDay';
-import isBefore from 'date-fns/isBefore';
 import addDays from 'date-fns/addDays';
 import addYears from 'date-fns/addYears';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -39,11 +40,33 @@ const diasDaSemana = [
   { label: 'Domingo', value: 0 },
 ];
 
+// Função para gerar os horários do Mapa Cardíaco
+const gerarHorariosMapaCardiaco = () => {
+  const horarios = {};
+  const dias = [1, 2, 3, 4, 5]; // Segunda a Sexta
+
+  dias.forEach(dia => {
+    if (dia === 5) {
+      // Sexta-feira
+      horarios[dia] = { horaInicio: '08:00', horaFim: '11:00', duracaoAtendimento: 60 }; // Atendimentos de 1 hora
+    } else {
+      horarios[dia] = { horaInicio: '08:00', horaFim: '19:00', duracaoAtendimento: 60 }; // Atendimentos de 1 hora
+    }
+  });
+
+  return horarios;
+};
+
+// Função para formatar datas com verificação de validade
+const formatDate = (date) => {
+  if (!date || isNaN(new Date(date).getTime())) return ''; // Verifica se a data é válida
+  return format(new Date(date), 'dd/MM/yyyy');
+};
+
 function Agendamento() {
   const [activeStep, setActiveStep] = useState(0);
   const [tipoSelecao, setTipoSelecao] = useState('');
   const [opcaoAtendimento, setOpcaoAtendimento] = useState('');
-  // eslint-disable-next-line
   const [servico, setServico] = useState('');
   const [Profissional, setProfissional] = useState('');
   const [data, setData] = useState('');
@@ -54,40 +77,40 @@ function Agendamento() {
   const [pacienteSelecionado, setPacienteSelecionado] = useState('');
   const [pacienteNome, setPacienteNome] = useState('');
   const [horariosDisponiveis, setHorariosDisponiveis] = useState({});
-  // eslint-disable-next-line
   const [diasDisponiveis, setDiasDisponiveis] = useState([]);
   const [horarioSelecionado, setHorarioSelecionado] = useState('');
   const [events, setEvents] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [mostrarPacientes, setMostrarPacientes] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
+  // Carregar dados de funções, especialidades e pacientes
   useEffect(() => {
     const carregarDados = async () => {
-      const db = getFirestore();
+      try {
+        // Carregar funções
+        const funcoesSnapshot = await getDocs(collection(db, "dbo.usuario"));
+        const funcoesList = funcoesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(funcao => funcao.ativo);
+        setFuncoes(funcoesList);
 
-      // Carregar funções
-      const funcoesSnapshot = await getDocs(collection(db, "dbo.usuario"));
-      const funcoesList = funcoesSnapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(funcao => funcao.ativo); // Filtrar funções inativas
-      setFuncoes(funcoesList);
+        // Carregar especialidades
+        const especialidadesSnapshot = await getDocs(collection(db, "dbo.especialidades"));
+        const especialidadesList = especialidadesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(especialidade => especialidade.ativo);
+        setEspecialidades(especialidadesList);
 
-      // Carregar especialidades
-      const especialidadesSnapshot = await getDocs(collection(db, "dbo.especialidades"));
-      const especialidadesList = especialidadesSnapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(especialidade => especialidade.ativo); // Filtrar especialidades inativas
-      setEspecialidades(especialidadesList);
-
-      // Carregar pacientes
-      const pacientesSnapshot = await getDocs(collection(db, "pacientes_cadastrados"));
-      const pacientesList = pacientesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setPacientes(pacientesList);
+        // Carregar pacientes
+        const pacientesSnapshot = await getDocs(collection(db, "pacientes_cadastrados"));
+        const pacientesList = pacientesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setPacientes(pacientesList);
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+      }
     };
 
     carregarDados();
   }, []);
 
+  // Carregar horários do profissional
   useEffect(() => {
     const carregarHorarios = async () => {
       if (Profissional) {
@@ -138,7 +161,6 @@ function Agendamento() {
   
     return eventos;
   };
-  
 
   const handleTipoSelecaoChange = (event) => {
     setTipoSelecao(event.target.value);
@@ -152,7 +174,7 @@ function Agendamento() {
       setDiasDisponiveis(dias);
       const eventos = gerarEventos(horariosMapaCardiaco, dias);
       setEvents(eventos);
-      setActiveStep(2); // Pular para a etapa de selecionar data e hora
+      setActiveStep(2);
     }
   };
 
@@ -167,57 +189,19 @@ function Agendamento() {
       const eventos = gerarEventos(horariosMapaCardiaco, dias);
       setEvents(eventos);
     } else {
-      const db = getFirestore();
       const campo = tipoSelecao === 'funcao' ? 'idFuncao' : 'especialidade';
 
       try {
         const ProfissionalsSnapshot = await getDocs(collection(db, "usuarios_cadastrados"));
         const ProfissionalsList = ProfissionalsSnapshot.docs
-          .map(doc => {
-            const data = { id: doc.id, ...doc.data() };
-            console.log('Documento carregado:', data); // Log do documento carregado
-            return data;
-          })
+          .map(doc => ({ id: doc.id, ...doc.data() }))
           .filter(Profissional => Profissional[campo] === event.target.value);
         
-        console.log('Profissionais filtrados:', ProfissionalsList); // Log dos profissionais filtrados
         setProfissionals(ProfissionalsList);
       } catch (error) {
         console.error('Erro ao carregar Profissionais:', error);
       }
     }
-  };
-
-  const gerarHorariosMapaCardiaco = () => {
-    const horarios = {};
-    const dias = [1, 2, 3, 4, 5]; // Segunda a Sexta
-
-    dias.forEach(dia => {
-      if (dia === 5) {
-        // Sexta-feira
-        horarios[dia] = { horaInicio: '08:00', horaFim: '11:00', duracaoAtendimento: 60 }; // Horários de 1 em 1 hora
-      } else {
-        horarios[dia] = { horaInicio: '08:00', horaFim: '19:00', duracaoAtendimento: 60 }; // Horários de 1 em 1 hora
-      }
-    });
-
-    return horarios;
-  };
-// eslint-disable-next-line
-  const handleServicoChange = (event) => {
-    setServico(event.target.value);
-  };
-
-  const handleProfissionalChange = (event) => {
-    setProfissional(event.target.value);
-  };
-// eslint-disable-next-line
-  const handleDateChange = (event) => {
-    setData(event.target.value);
-  };
-// eslint-disable-next-line
-  const handleHorarioChange = (event) => {
-    setHorarioSelecionado(event.target.value);
   };
 
   const handlePacienteChange = (event, newValue) => {
@@ -230,86 +214,17 @@ function Agendamento() {
     }
   };
 
-  const handleSearch = () => {
-    setMostrarPacientes(true); // Mostrar pacientes ao clicar no botão de pesquisa
-  };
-
-  const handleKeyPress = (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault(); // Evitar o envio do formulário ao pressionar Enter
-      handleSearch(); // Mostrar pacientes ao pressionar Enter
-    }
-  };
-
-  const handleNext = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep + 1);
-  };
-
-  const handleBack = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep - 1);
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    try {
-      const agendamento = {
-        pacienteId: pacienteSelecionado,
-        pacienteNome,
-        ProfissionalId: Profissional,
-        data,
-        horario: horarioSelecionado
-      };
-
-      await addDoc(collection(db, 'agendamentos'), agendamento);
-
-      // Dados do evento para enviar ao Google Calendar
-      const googleEvent = {
-        summary: `Consulta com ${pacienteNome}`,
-        location: '',
-        description: 'Consulta médica',
-        start: new Date(data).toISOString(),
-        end: new Date(new Date(data).getTime() + 60 * 60 * 1000).toISOString(), // Exemplo de 1 hora de duração
-      };
-
-      await fetch('https://us-central1-unna-6c98e.cloudfunctions.net/addEventToCalendar', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(googleEvent)
-      });
-
-      alert('Agendamento confirmado e adicionado ao Google Calendar!');
-    } catch (error) {
-      console.error('Erro ao confirmar agendamento:', error);
-    }
-  };
-// eslint-disable-next-line
-  const handleAddPaciente = () => {
-    alert('Adicionar novo paciente');
-  };
-
   const handleSelectEvent = (event) => {
-    setData(event.start);
-    setModalOpen(true);
-  };
-
-  const steps = ['Serviço', 'Profissional', 'Data e Hora', 'Concluir'];
-
-  const formatDate = (date) => {
-    return format(new Date(date), 'dd/MM/yyyy');
-  };
-// eslint-disable-next-line
-  const formatHora = (hora) => {
-    return hora ? hora.slice(0, 5) : '';
+    if (event && event.start) {
+      setData(event.start); // Verifique se event.start é válido antes de definir o estado
+      setModalOpen(true);
+    }
   };
 
   const gerarPeriodos = (horario) => {
     if (!horario.horaInicio || !horario.horaFim || !horario.duracaoAtendimento) {
       return [];
     }
-    // eslint-disable-next-line
     const { horaInicio, horaFim, duracaoAtendimento } = horario;
     const periodos = [];
     const [inicioH, inicioM] = horaInicio.split(':').map(Number);
@@ -339,177 +254,186 @@ function Agendamento() {
     return periodos;
   };
 
+  const handleHorarioChange = (horario) => {
+    setHorarioSelecionado(horario);
+    setConfirmDialogOpen(true); // Abrir a confirmação após o horário ser selecionado
+  };
+
+  const handleSubmit = async () => {
+    try {
+      // Checar se o horário já está ocupado
+      const docRef = doc(db, 'usuarios_cadastrados', Profissional);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const dataDoc = docSnap.data();
+        const horarios = dataDoc.disponibilidade?.horarios || {};
+        const horarioOcupado = horarios[format(new Date(data), 'yyyy-MM-dd')]?.includes(horarioSelecionado);
+        
+        if (horarioOcupado) {
+          alert('Esse horário já está ocupado. Escolha outro horário.');
+          return;
+        }
+
+        // Salvar agendamento
+        const agendamento = {
+          pacienteId: pacienteSelecionado,
+          pacienteNome,
+          ProfissionalId: Profissional,
+          data,
+          horario: horarioSelecionado
+        };
+
+        await addDoc(collection(db, 'agendamentos'), agendamento);
+
+        // Atualizar horários no documento do profissional
+        const horariosAtualizados = {
+          ...horarios,
+          [format(new Date(data), 'yyyy-MM-dd')]: [
+            ...(horarios[format(new Date(data), 'yyyy-MM-dd')] || []),
+            horarioSelecionado
+          ]
+        };
+
+        await updateDoc(docRef, {
+          'disponibilidade.horarios': horariosAtualizados
+        });
+
+        alert('Agendamento confirmado e horário bloqueado!');
+        setConfirmDialogOpen(false); // Fechar o diálogo de confirmação
+      }
+    } catch (error) {
+      console.error('Erro ao confirmar agendamento:', error);
+      alert('Erro ao confirmar agendamento.');
+    }
+  };
+
   return (
     <Container maxWidth="md">
       <MenuPrincipal />
       <Box className="agendamento-container">
         <Stepper activeStep={activeStep} className="stepper">
-          {steps.map((label) => (
+          {['Serviço', 'Profissional', 'Data e Hora', 'Concluir'].map((label) => (
             <Step key={label}>
               <StepLabel>{label}</StepLabel>
             </Step>
           ))}
         </Stepper>
-        {activeStep === steps.length ? (
-          <Typography variant="h5" className="header">
-            Agendamento Concluído!
-          </Typography>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <Typography variant="h4" className="header">Agendar Serviço</Typography>
+        <form onSubmit={handleSubmit}>
+          {activeStep === 0 && (
+            <>
+              <Box display="flex" alignItems="center" marginBottom={2}>
+                <Autocomplete
+                  options={pacientes} // Usando a lista de pacientes carregados
+                  getOptionLabel={(option) => `${option.nome} (nasc.: ${format(new Date(option.dataNascimento), 'dd/MM/yyyy')})`}
+                  renderInput={(params) => <TextField {...params} label="Pesquisar Paciente" fullWidth margin="normal" />}
+                  onChange={handlePacienteChange}
+                  style={{ flex: 1 }}
+                />
+                <IconButton color="primary" onClick={() => setMostrarPacientes(true)}>
+                  <AddIcon />
+                </IconButton>
+              </Box>
 
-            {activeStep === 0 && (
-              <>
-                <Box display="flex" alignItems="center" marginBottom={2}>
-                  <Autocomplete
-                    options={mostrarPacientes ? pacientes : []}
-                    getOptionLabel={(option) => `${option.nome} (nasc.: ${formatDate(option.dataNascimento)})`}
-                    renderInput={(params) => <TextField {...params} label="Pesquisar Paciente" fullWidth margin="normal" onKeyPress={handleKeyPress} />}
-                    onChange={handlePacienteChange}
-                    style={{ flex: 1 }}
-                  />
-                  <IconButton color="primary" onClick={handleSearch}>
-                    <AddIcon />
-                  </IconButton>
-                </Box>
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Buscar por...</InputLabel>
+                <Select value={tipoSelecao} onChange={handleTipoSelecaoChange}>
+                  <MenuItem value="funcao">Função</MenuItem>
+                  <MenuItem value="especialidade">Especialidade</MenuItem>
+                  <MenuItem value="Mapa Cardíaco">Mapa Cardíaco</MenuItem>
+                </Select>
+              </FormControl>
 
+              {tipoSelecao !== 'Mapa Cardíaco' && (
                 <FormControl fullWidth margin="normal">
-                  <InputLabel className="input-label">Buscar por...</InputLabel>
-                  <Select
-                    className="select-field"
-                    value={tipoSelecao}
-                    label="Buscar por..."
-                    onChange={handleTipoSelecaoChange}
-                  >
-                    <MenuItem value="funcao">Função</MenuItem>
-                    <MenuItem value="especialidade">Especialidade</MenuItem>
-                    <MenuItem value="Mapa Cardíaco">Mapa Cardíaco</MenuItem>
-                  </Select>
-                </FormControl>
-
-                {tipoSelecao !== 'Mapa Cardíaco' && (
-                  <FormControl fullWidth margin="normal">
-                    <InputLabel className="input-label">Função/Especialidade</InputLabel>
-                    <Select
-                      className="select-field"
-                      value={opcaoAtendimento}
-                      label="Função/Especialidade"
-                      onChange={handleOpcaoAtendimentoChange}
-                    >
-                      {tipoSelecao === 'funcao' && funcoes.map((funcao) => (
-                        <MenuItem key={funcao.id} value={funcao.id}>{funcao.nome}</MenuItem>
-                      ))}
-                      {tipoSelecao === 'especialidade' && especialidades.map((especialidade) => (
-                        <MenuItem key={especialidade.id} value={especialidade.id}>{especialidade.nome}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                )}
-              </>
-            )}
-
-            {activeStep === 1 && (
-              <>
-                <FormControl fullWidth margin="normal">
-                  <InputLabel className="input-label">Profissional</InputLabel>
-                  <Select
-                    className="select-field"
-                    value={Profissional}
-                    label="Profissional"
-                    onChange={handleProfissionalChange}
-                  >
-                    {Profissionals.map((atend) => (
-                      <MenuItem key={atend.id} value={atend.id}>{atend.nome}</MenuItem>
+                  <InputLabel>Função/Especialidade</InputLabel>
+                  <Select value={opcaoAtendimento} onChange={handleOpcaoAtendimentoChange}>
+                    {tipoSelecao === 'funcao' && funcoes.map((funcao) => (
+                      <MenuItem key={funcao.id} value={funcao.id}>{funcao.nome}</MenuItem>
+                    ))}
+                    {tipoSelecao === 'especialidade' && especialidades.map((especialidade) => (
+                      <MenuItem key={especialidade.id} value={especialidade.id}>{especialidade.nome}</MenuItem>
                     ))}
                   </Select>
                 </FormControl>
+              )}
+            </>
+          )}
 
-                <Typography variant="h6" margin="normal">
-                  Paciente: {pacienteNome}
-                </Typography>
-              </>
-            )}
+          {activeStep === 1 && (
+            <>
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Profissional</InputLabel>
+                <Select value={Profissional} onChange={(e) => setProfissional(e.target.value)}>
+                  {Profissionals.map((prof) => (
+                    <MenuItem key={prof.id} value={prof.id}>{prof.nome}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <Typography variant="h6">Paciente: {pacienteNome}</Typography>
+            </>
+          )}
 
-            {activeStep === 2 && (
-              <>
-                <Typography variant="h6" margin="normal">
-                  Selecione uma data:
-                </Typography>
+          {activeStep === 2 && (
+            <>
+              <Typography variant="h6">Selecione uma data e horário:</Typography>
+              <Calendar
+                localizer={localizer}
+                events={events}
+                startAccessor="start"
+                endAccessor="end"
+                style={{ height: 500 }}
+                selectable
+                onSelectEvent={handleSelectEvent}
+              />
 
-                <Box sx={{ height: 500, marginTop: 2 }}>
-                  <Calendar
-                    localizer={localizer}
-                    events={events}
-                    startAccessor="start"
-                    endAccessor="end"
-                    style={{ height: 500 }}
-                    selectable
-                    onSelectEvent={handleSelectEvent}
-                    messages={{
-                      next: "Próximo",
-                      previous: "Anterior",
-                      today: "Hoje",
-                      month: "Mês",
-                      week: "Semana",
-                      day: "Dia",
-                      agenda: "Agenda",
-                      date: "Data",
-                      time: "Hora",
-                      event: "Evento",
-                      allDay: "Todo o dia",
-                      noEventsInRange: "Não há eventos neste intervalo.",
-                    }}
-                    components={{
-                      event: ({ event }) => {
-                        const isPast = isBefore(new Date(event.start), new Date());
-                        return (
-                          <span style={{ color: isPast ? 'gray' : 'black' }}>
-                            {event.title}
-                          </span>
-                        );
-                      }
-                    }}
-                  />
-                </Box>
-
-                <Modal
-                  open={modalOpen}
-                  onClose={() => setModalOpen(false)}
-                  aria-labelledby="simple-modal-title"
-                  aria-describedby="simple-modal-description"
-                >
-                  <Box sx={{ margin: 'auto', marginTop: '10%', width: 400, backgroundColor: 'white', padding: 2 }}>
-                    <Typography variant="h6" margin="normal">
-                      Horários Disponíveis
-                    </Typography>
+              {/* Modal de horários */}
+              {modalOpen && (
+                <div className="modal-overlay">
+                  <div className="modal-box">
+                    <button className="modal-close-button" onClick={() => setModalOpen(false)}>&times;</button>
+                    <Typography className="modal-title">Horários Disponíveis</Typography>
                     <List>
                       {gerarPeriodos(horariosDisponiveis[getDay(new Date(data))] || {}).map((horario, index) => (
-                        <ListItem button key={index} onClick={() => { setHorarioSelecionado(horario); setModalOpen(false); }}>
+                        <ListItem button key={index} onClick={() => handleHorarioChange(horario)} className="list-item">
                           <ListItemText primary={horario} />
                         </ListItem>
                       ))}
                     </List>
-                  </Box>
-                </Modal>
-              </>
-            )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
 
-            <Box display="flex" justifyContent="space-between" marginTop={2}>
-              <Button disabled={activeStep === 0} onClick={handleBack}>
-                Voltar
-              </Button>
-              {activeStep === steps.length - 1 ? (
-                <Button type="submit" variant="contained" color="primary">
-                  Confirmar Agendamento
-                </Button>
-              ) : (
-                <Button variant="contained" color="primary" onClick={handleNext}>
-                  Próximo
-                </Button>
-              )} 
-            </Box>
-          </form>
-        )}
+          <Box display="flex" justifyContent="space-between" marginTop={2}>
+            <Button disabled={activeStep === 0} onClick={() => setActiveStep(activeStep - 1)}>Voltar</Button>
+            {activeStep === 3 ? (
+              <Button type="submit" variant="contained" color="primary">Confirmar Agendamento</Button>
+            ) : (
+              <Button variant="contained" color="primary" onClick={() => setActiveStep(activeStep + 1)}>Próximo</Button>
+            )}
+          </Box>
+        </form>
+
+        <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)}>
+          <DialogTitle>Confirmação do Agendamento</DialogTitle>
+          <DialogContent>
+            <Typography>Paciente: {pacienteNome}</Typography>
+            <Typography>Profissional: {Profissionals.find(prof => prof.id === Profissional)?.nome}</Typography>
+            <Typography>Data: {data ? formatDate(data) : 'Data não selecionada'}</Typography>
+            <Typography>Horário: {horarioSelecionado}</Typography>
+          </DialogContent>
+
+          <DialogActions>
+            <Button onClick={() => setConfirmDialogOpen(false)} color="secondary">
+              Cancelar
+            </Button>
+            <Button onClick={handleSubmit} color="primary">
+              Confirmar
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </Container>
   );

@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, doc, updateDoc, addDoc, query, where } from 'firebase/firestore';
 import { db } from '../../../firebase';
@@ -21,7 +23,7 @@ import {
   DialogTitle,
   Autocomplete
 } from '@mui/material';
-import { format, isValid, isAfter } from 'date-fns';
+import { format, isValid, isAfter, parseISO } from 'date-fns';
 import './VerificarAgendamentos.css';
 
 const VerificarAgendamentos = () => {
@@ -39,6 +41,10 @@ const VerificarAgendamentos = () => {
       try {
         const medicosSnapshot = await getDocs(collection(db, 'usuarios_cadastrados'));
         const medicosList = medicosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Ordena os médicos em ordem alfabética
+        medicosList.sort((a, b) => a.nome.localeCompare(b.nome));
+
         setMedicos(medicosList);
       } catch (error) {
         console.error('Erro ao buscar médicos: ', error);
@@ -51,13 +57,16 @@ const VerificarAgendamentos = () => {
   useEffect(() => {
     if (medicoSelecionado) {
       const fetchAgendamentos = async () => {
+        console.log('Buscando agendamentos para o médico selecionado:', medicoSelecionado);
         try {
           const querySnapshot = await getDocs(collection(db, 'agendamentos'));
           const agendamentosList = [];
           querySnapshot.forEach((doc) => {
+            console.log('Documento encontrado:', doc.id, doc.data());
             const data = doc.data();
             if (data && data.data) {
-              const dataAgendamento = data.data.toDate ? data.data.toDate() : data.data;
+              console.log('Data de agendamento encontrada:', data.data);
+              const dataAgendamento = data.data.seconds ? new Date(data.data.seconds * 1000) : data.data;
               if (data.ProfissionalId === medicoSelecionado && isAfter(new Date(dataAgendamento), new Date())) {
                 agendamentosList.push({ id: doc.id, ...data, data: dataAgendamento });
               }
@@ -72,6 +81,22 @@ const VerificarAgendamentos = () => {
       fetchAgendamentos();
     }
   }, [medicoSelecionado]);
+
+  const agruparAgendamentosPorMes = (agendamentos) => {
+    return agendamentos.reduce((grupo, agendamento) => {
+      const data = agendamento.data;
+      if (!isValid(new Date(data))) {
+        console.error('Data inválida:', data);
+        return grupo;
+      }
+      const formattedMonth = format(new Date(data), 'yyyy-MM');
+      if (!grupo[formattedMonth]) {
+        grupo[formattedMonth] = [];
+      }
+      grupo[formattedMonth].push(agendamento);
+      return grupo;
+    }, {});
+  };
 
   const agruparAgendamentosPorData = (agendamentos) => {
     return agendamentos.reduce((grupo, agendamento) => {
@@ -88,6 +113,8 @@ const VerificarAgendamentos = () => {
       return grupo;
     }, {});
   };
+
+  const agendamentosAgrupadosPorMes = agruparAgendamentosPorMes(agendamentos);
 
   const atualizarStatusAgendamento = async (id, status) => {
     try {
@@ -116,10 +143,10 @@ const VerificarAgendamentos = () => {
   };
 
   const handleDiaClick = (dia) => {
-    setDiaSelecionado(dia);
+    if (dia) {
+      setDiaSelecionado(dia);
+    }
   };
-
-  const agendamentosAgrupados = agruparAgendamentosPorData(agendamentos);
 
   const handleEncaixarPaciente = () => {
     setOpenDialog(true);
@@ -129,18 +156,20 @@ const VerificarAgendamentos = () => {
     if (selectedPaciente && medicoSelecionado) {
       try {
         const agendamentoOriginal = agendamentos.find(ag => ag.data === diaSelecionado && ag.ProfissionalId === medicoSelecionado);
-        const novoAgendamento = {
-          ProfissionalId: medicoSelecionado,
-          pacienteNome: selectedPaciente.nome,
-          horario: agendamentoOriginal.horario,
-          status: 'encaixado',
-          data: agendamentoOriginal.data
-        };
-        await addDoc(collection(db, 'agendamentos'), novoAgendamento);
-        setAgendamentos([...agendamentos, novoAgendamento]);
-        setOpenDialog(false);
-        setPacienteNome('');
-        setPacientes([]);
+        if (agendamentoOriginal) {
+          const novoAgendamento = {
+            ProfissionalId: medicoSelecionado,
+            pacienteNome: selectedPaciente.nome,
+            horario: agendamentoOriginal.horario,
+            status: 'encaixado',
+            data: agendamentoOriginal.data
+          };
+          await addDoc(collection(db, 'agendamentos'), novoAgendamento);
+          setAgendamentos([...agendamentos, novoAgendamento]);
+          setOpenDialog(false);
+          setPacienteNome('');
+          setPacientes([]);
+        }
       } catch (error) {
         console.error('Erro ao encaixar paciente:', error);
       }
@@ -187,61 +216,54 @@ const VerificarAgendamentos = () => {
         </FormControl>
       </Box>
 
-      <Box className="dia-container">
-        {Object.keys(agendamentosAgrupados).map((data) => (
-          <Box
-            key={data}
-            className={`dia-button ${diaSelecionado === data ? 'dia-selecionado' : ''}`}
-            onClick={() => handleDiaClick(data)}
-          >
-            {isValid(new Date(data)) ? format(new Date(data), 'dd/MM/yyyy') : 'Data inválida'}
-          </Box>
-        ))}
-      </Box>
-
-      {diaSelecionado && (
-        <Fade in={!!diaSelecionado}>
-          <Box className="agendamento-container">
-            {isValid(new Date(diaSelecionado)) ? (
-              <Typography variant="h6" align="center">{format(new Date(diaSelecionado), 'dd/MM/yyyy')}</Typography>
-            ) : (
-              <Typography variant="h6" className="invalid-date" align="center">Data inválida: {diaSelecionado}</Typography>
-            )}
-            <Box className="agendamentos-list">
-              {agendamentosAgrupados[diaSelecionado].map((agendamento) => (
-                <Card key={agendamento.id} variant="outlined" className="agendamento-card" style={{ backgroundColor: getStatusColor(agendamento.status || 'pendente') }}>
-                  <CardContent className="card-content">
-                    <Typography variant="subtitle1">{`Paciente: ${agendamento.pacienteNome || 'N/A'}`}</Typography>
-                    <Typography variant="body2">{`Horário: ${agendamento.horario}`}</Typography>
-                  </CardContent>
-                  <CardActions className="card-actions">
-                    <Button
-                      size="small"
-                      className="button-confirmar"
-                      onClick={() => atualizarStatusAgendamento(agendamento.id, 'confirmado')}
-                    >
-                      Confirmar
-                    </Button>
-                    <Button
-                      size="small"
-                      className="button-desmarcar"
-                      onClick={() => atualizarStatusAgendamento(agendamento.id, 'desmarcado')}
-                    >
-                      Desmarcar
-                    </Button>
-                    <Button
-                      size="small"
-                      className="button-encaixar"
-                      onClick={handleEncaixarPaciente}
-                    >
-                      Encaixar
-                    </Button>
-                  </CardActions>
-                </Card>
+      {medicoSelecionado && (
+        <Box className="agendamentos-list-container">
+          {Object.keys(agendamentosAgrupadosPorMes).map((mes) => (
+            <Box key={mes} className="agendamentos-mes">
+              <Typography variant="h5" className="agendamentos-mes-titulo">
+                {format(parseISO(`${mes}-01`), 'MMMM yyyy')}
+              </Typography>
+              {Object.keys(agruparAgendamentosPorData(agendamentosAgrupadosPorMes[mes])).map((data) => (
+                <Box key={data} className="agendamentos-dia">
+                  <Typography variant="h6" className="agendamentos-dia-titulo">
+                    {format(new Date(data), 'dd/MM/yyyy')}
+                  </Typography>
+                  {agruparAgendamentosPorData(agendamentosAgrupadosPorMes[mes])[data].map((agendamento) => (
+                    <Card key={agendamento.id} variant="outlined" className="agendamento-card" style={{ backgroundColor: getStatusColor(agendamento.status || 'pendente') }}>
+                      <CardContent className="card-content">
+                        <Typography variant="subtitle1">{`Paciente: ${agendamento.pacienteNome || 'N/A'}`}</Typography>
+                        <Typography variant="body2">{`Horário: ${agendamento.horario}`}</Typography>
+                      </CardContent>
+                      <CardActions className="card-actions">
+                        <Button
+                          size="small"
+                          className="button-confirmar"
+                          onClick={() => atualizarStatusAgendamento(agendamento.id, 'confirmado')}
+                        >
+                          Confirmar
+                        </Button>
+                        <Button
+                          size="small"
+                          className="button-desmarcar"
+                          onClick={() => atualizarStatusAgendamento(agendamento.id, 'desmarcado')}
+                        >
+                          Desmarcar
+                        </Button>
+                        <Button
+                          size="small"
+                          className="button-encaixar"
+                          onClick={handleEncaixarPaciente}
+                        >
+                          Encaixar
+                        </Button>
+                      </CardActions>
+                    </Card>
+                  ))}
+                </Box>
               ))}
             </Box>
-          </Box>
-        </Fade>
+          ))}
+        </Box>
       )}
 
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} sx={{ '& .MuiDialog-paper': { width: '35vw', height: '35vh' } }}>

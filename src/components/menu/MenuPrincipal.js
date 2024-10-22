@@ -48,6 +48,7 @@ const MenuPrincipal = () => {
                         <MenuIcon />
                     </IconButton>
 
+                    {/* Ícone da casinha para navegar para a home */}
                     <IconButton
                         edge="start"
                         color="inherit"
@@ -56,6 +57,17 @@ const MenuPrincipal = () => {
                         sx={{ mr: 2 }}
                     >
                         <HomeIcon />
+                    </IconButton>
+
+                    {/* Ícone do calendário para navegar para a agenda */}
+                    <IconButton
+                        edge="start"
+                        color="inherit"
+                        aria-label="agendamento"
+                        onClick={() => navigate("/verificar-agendamentos")}
+                        sx={{ mr: 2 }}
+                    >
+                        <CalendarTodayIcon />
                     </IconButton>
 
                     <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
@@ -112,10 +124,6 @@ const MenuPrincipal = () => {
                         </ListItemButton>
                         <Collapse in={showUserCrudMenu} timeout="auto" unmountOnExit>
                             <List component="div" disablePadding>
-                                {/* <ListItemButton sx={{ pl: 4 }} onClick={() => handleNavigate("/cadastro-usuario")}>
-                                    <ListItemText primary="Cadastrar" />
-                                </ListItemButton> */}
-
                                 <ListItemButton sx={{ pl: 4 }} onClick={() => handleNavigate("/usuarios-cadastrados")}>
                                     <ListItemText primary="Colaboradores" />
                                 </ListItemButton>

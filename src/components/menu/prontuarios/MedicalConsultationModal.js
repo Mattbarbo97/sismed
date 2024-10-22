@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+/* eslint-disable */
+import React, { useState, useEffect } from 'react';
 import {
-  Box, Button, IconButton, Modal, Paper, Typography, TextField, InputAdornment, Checkbox, FormControlLabel, CircularProgress
+  Box, Button, IconButton, Modal, Paper, Typography, TextField, InputAdornment, Checkbox, FormControlLabel, CircularProgress, Alert
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -9,9 +10,10 @@ import * as Yup from 'yup';
 import PrintableDocument from './PrintableDocument';
 import { format } from 'date-fns';
 import { useUser } from '../../../context/UserContext';
-import { storage } from "../../../firebase"; // Importando o firebase storage configurado
+import { storage, db } from "../../../firebase"; // Importando o firebase storage e firestore configurado
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-// eslint-disable-next-line
+import { doc, updateDoc, arrayUnion, getDoc } from "firebase/firestore";
+
 const timeZone = 'America/Sao_Paulo';
 
 function getBrazilTime() {
@@ -47,6 +49,27 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
   const [fileCaption, setFileCaption] = useState("");
   const [openFileModal, setOpenFileModal] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [documents, setDocuments] = useState([]);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      if (paciente?.id) {
+        const patientRef = doc(db, "prontuarios", paciente.id);
+        const patientSnap = await getDoc(patientRef);
+        if (patientSnap.exists()) {
+          const patientData = patientSnap.data();
+          if (patientData.documentos) {
+            setDocuments(patientData.documentos);
+          }
+        }
+      }
+    };
+
+    if (open) {
+      fetchDocuments();
+    }
+  }, [open, paciente?.id]);
 
   const formik = useFormik({
     initialValues: {
@@ -59,18 +82,33 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
     validationSchema: validationSchema,
     onSubmit: async (values) => {
       setIsUploading(true);
+      setErrorMessage("");
       let fileUrl = null;
       try {
         if (file) {
           const formattedDate = values.dataAtendimento.split('/').reverse().join('-'); // Corrigir a data para o formato correto
           fileUrl = await uploadFileToFirebase(file, paciente.id, formattedDate);
         }
+
+        // Atualizar os documentos do paciente no Firestore
+        const patientRef = doc(db, "prontuarios", paciente.id);
+        await updateDoc(patientRef, {
+          documentos: arrayUnion({
+            fileUrl: fileUrl,
+            fileCaption: fileCaption,
+            fileName: file.name,
+            fileType: file.type,
+            dataUpload: new Date().toISOString(),
+          }),
+        });
+
         handleSave({ ...values, fileUrl, fileCaption, paciente });
         formik.resetForm();
         setFile(null);
         setFileCaption("");
       } catch (error) {
         console.error("Erro ao fazer upload do arquivo:", error);
+        setErrorMessage("Erro ao salvar o prontuário. Verifique sua conexão e tente novamente.");
       } finally {
         setIsUploading(false);
       }
@@ -85,21 +123,6 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
       const newLineNumber = lines.length + 1;
       updatedValue += `\n${newLineNumber}- `;
       formik.setFieldValue(`${field}[${index}].value`, updatedValue);
-    }
-  };
-
-  const handleDocumentPrinted = (type) => {
-    const printNote = `${type.charAt(0).toUpperCase() + type.slice(1)} impresso em ${getBrazilTime()}`;
-    const currentNotes = formik.values.anotacoes;
-    const updatedNotes = currentNotes + '\n' + printNote;
-    formik.setFieldValue('anotacoes', updatedNotes);
-
-    if (printIndex + 1 < printContentList.length) {
-      setPrintIndex(printIndex + 1);
-    } else {
-      setOpenPrintModal(false);
-      setPrintIndex(0);
-      setPrintContentList([]);
     }
   };
 
@@ -132,6 +155,14 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
     setPrintTitle('Receita Médica');
     setPrintContentList(formattedPrescriptions);
     setOpenPrintModal(true);
+  };
+
+  const handlePrint = () => {
+    const printNote = `${printTitle.charAt(0).toUpperCase() + printTitle.slice(1)} impresso em ${getBrazilTime()}`;
+    const currentNotes = formik.values.anotacoes;
+    const updatedNotes = currentNotes + '\n' + printNote;
+    formik.setFieldValue('anotacoes', updatedNotes);
+    setOpenPrintModal(false);
   };
 
   const imprimirExames = () => {
@@ -172,6 +203,7 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
         >
           <Typography variant="h6" style={{ textAlign: "center" }}>Novo Atendimento</Typography>
           <Typography variant="subtitle1">Paciente: {paciente.nome}</Typography>
+          {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
           <form onSubmit={formik.handleSubmit}>
             <Typography variant="h6">Receitas</Typography>
             <Box display="flex" flexDirection="column" alignItems="center" gap={2} sx={{ marginBottom: 2 }}>
@@ -336,8 +368,8 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
                   backgroundColor: "#f44336",
                   "&:hover": {
                     backgroundColor: "#d32f2f",
-                  }}
-                }
+                  }
+                }}
                 onClick={() => setConfirmClear(true)}
                 disabled={isUploading} // Desabilitar botão enquanto estiver carregando
               >
@@ -398,8 +430,8 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
                 backgroundColor: "#f44336",
                 "&:hover": {
                   backgroundColor: "#d32f2f",
-                }}
-              }
+                }
+              }}
               onClick={() => setConfirmClear(false)}
             >
               Não
@@ -408,18 +440,28 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
         </Paper>
       </Modal>
 
-      {printContentList.length > 0 && (
-        <PrintableDocument
-          open={openPrintModal}
-          onClose={handlePrintModalClose}
-          paciente={paciente}
-          conteudo={printContentList}
-          titulo={printTitle}
-          medico={{ nome: user?.nome, crm: user?.identificacaoProfissional }}
-          includeDate={true}  // Definindo como true para sempre incluir a data
-          onDocumentPrinted={() => handleDocumentPrinted(printTitle.toLowerCase())}
-        />
-      )}
+      {printContentList.length > 0 && (<PrintableDocument open={openPrintModal} onClose={handlePrintModalClose} paciente={paciente} conteudo={printContentList} titulo={printTitle} medico={{ nome: user?.nome, crm: user?.identificacaoProfissional }} includeDate={true} onDocumentPrinted={() => handlePrint()} />)}
+
+      <Box className="subtle-line"></Box>
+      <Typography variant="h6">Documentos do Paciente</Typography>
+      <Box sx={{ marginBottom: 2 }}>
+        {documents.length > 0 ? (
+          documents.map((doc, index) => (
+            <Box key={index} display="flex" flexDirection="column" alignItems="flex-start" gap={1} sx={{ marginBottom: 2 }}>
+              <Typography><strong>Nome do Arquivo:</strong> {doc.fileName}</Typography>
+              <Typography><strong>Legenda:</strong> {doc.fileCaption}</Typography>
+              <Button
+                variant="outlined"
+                onClick={() => window.open(doc.fileUrl, "_blank")}
+              >
+                Ver Documento
+              </Button>
+            </Box>
+          ))
+        ) : (
+          <Typography>Nenhum documento adicionado.</Typography>
+        )}
+      </Box>
 
       <Modal open={openFileModal} onClose={() => setOpenFileModal(false)}>
         <Paper

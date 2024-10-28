@@ -226,4 +226,61 @@ const VerificarAgendamentos = () => {
 
       {/* Dialog */}
       <Dialog open={openDialog} onClose={() =>
+<Dialog open={openDialog} onClose={() => setOpenDialog(false)} sx={{ '& .MuiDialog-paper': { width: '35vw', height: '35vh' } }}>
+        <DialogTitle>Encaixar Paciente</DialogTitle>
+        <DialogContent>
+          <Autocomplete
+            options={pacientes}
+            getOptionLabel={(option) => option.nome}
+            onInputChange={(event, newInputValue) => {
+              setPacienteNome(newInputValue);
+              buscarPacientes(newInputValue);
+            }}
+            onChange={(event, newValue) => {
+              setSelectedPaciente(newValue);
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Nome do Paciente"
+                variant="outlined"
+                fullWidth
+                margin="dense"
+                onKeyPress={handleKeyPress}
+              />
+            )}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDialog(false)} color="primary">Cancelar</Button>
+          <Button onClick={handleConfirmarEncaixe} color="primary">Confirmar</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Box className="legenda-container">
+        <Typography variant="h6">Legenda:</Typography>
+        <Box className="legenda">
+          <Box className="legenda-item">
+            <Box className="legenda-cor" style={{ backgroundColor: 'lightgreen' }} />
+            <Typography>Confirmado</Typography>
+          </Box>
+          <Box className="legenda-item">
+            <Box className="legenda-cor" style={{ backgroundColor: 'lightcoral' }} />
+            <Typography>Desmarcado</Typography>
+          </Box>
+          <Box className="legenda-item">
+            <Box className="legenda-cor" style={{ backgroundColor: 'lightgoldenrodyellow' }} />
+            <Typography>Pendente</Typography>
+          </Box>
+          <Box className="legenda-item">
+            <Box className="legenda-cor" style={{ backgroundColor: 'lightblue' }} />
+            <Typography>Encaixado</Typography>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
+  );
+};
+
+export default VerificarAgendamentos;
     

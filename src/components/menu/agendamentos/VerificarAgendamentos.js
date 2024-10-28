@@ -15,7 +15,6 @@ import {
   CardContent,
   CardActions,
   Button,
-  Fade,
   TextField,
   Dialog,
   DialogActions,
@@ -41,7 +40,7 @@ const VerificarAgendamentos = () => {
       try {
         const medicosSnapshot = await getDocs(collection(db, 'usuarios_cadastrados'));
         const medicosList = medicosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
+        
         // Ordena os médicos em ordem alfabética
         medicosList.sort((a, b) => a.nome.localeCompare(b.nome));
 
@@ -59,19 +58,19 @@ const VerificarAgendamentos = () => {
       const fetchAgendamentos = async () => {
         console.log('Buscando agendamentos para o médico selecionado:', medicoSelecionado);
         try {
-          const querySnapshot = await getDocs(collection(db, 'agendamentos'));
-          const agendamentosList = [];
-          querySnapshot.forEach((doc) => {
-            console.log('Documento encontrado:', doc.id, doc.data());
-            const data = doc.data();
-            if (data && data.data) {
-              console.log('Data de agendamento encontrada:', data.data);
-              const dataAgendamento = data.data.seconds ? new Date(data.data.seconds * 1000) : data.data;
-              if (data.ProfissionalId === medicoSelecionado && isAfter(new Date(dataAgendamento), new Date())) {
-                agendamentosList.push({ id: doc.id, ...data, data: dataAgendamento });
-              }
-            }
-          });
+          const q = query(
+            collection(db, 'agendamentos'),
+            where('ProfissionalId', '==', medicoSelecionado)
+          );
+          const querySnapshot = await getDocs(q);
+          const agendamentosList = querySnapshot.docs.map(doc => {
+            const dataAgendamento = parseISO(doc.data().data); // Converte string para Date
+            return {
+              id: doc.id,
+              ...doc.data(),
+              data: dataAgendamento
+            };
+          }).filter(agendamento => isAfter(agendamento.data, new Date()));
           setAgendamentos(agendamentosList);
         } catch (error) {
           console.error('Erro ao buscar agendamentos: ', error);
@@ -89,7 +88,7 @@ const VerificarAgendamentos = () => {
         console.error('Data inválida:', data);
         return grupo;
       }
-      const formattedMonth = format(new Date(data), 'yyyy-MM');
+      const formattedMonth = format(data, 'yyyy-MM');
       if (!grupo[formattedMonth]) {
         grupo[formattedMonth] = [];
       }
@@ -105,7 +104,7 @@ const VerificarAgendamentos = () => {
         console.error('Data inválida:', data);
         return grupo;
       }
-      const formattedDate = format(new Date(data), 'yyyy-MM-dd');
+      const formattedDate = format(data, 'yyyy-MM-dd');
       if (!grupo[formattedDate]) {
         grupo[formattedDate] = [];
       }
@@ -119,17 +118,10 @@ const VerificarAgendamentos = () => {
   const atualizarStatusAgendamento = async (id, status) => {
     try {
       const docRef = doc(db, 'agendamentos', id);
-      console.log(`Atualizando agendamento ${id} para status ${status}`);
       await updateDoc(docRef, { status });
-      setAgendamentos(prevAgendamentos => {
-        const novosAgendamentos = prevAgendamentos.map(ag => {
-          if (ag.id === id) {
-            return { ...ag, status };
-          }
-          return ag;
-        });
-        return novosAgendamentos;
-      });
+      setAgendamentos(prevAgendamentos =>
+        prevAgendamentos.map(ag => ag.id === id ? { ...ag, status } : ag)
+      );
     } catch (error) {
       console.error('Erro ao atualizar agendamento:', error);
     }
@@ -140,16 +132,6 @@ const VerificarAgendamentos = () => {
     const pacientesSnapshot = await getDocs(query(collection(db, 'pacientes_cadastrados'), where('nome', '>=', nome), where('nome', '<=', nome + '\uf8ff')));
     const pacientesList = pacientesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     setPacientes(pacientesList);
-  };
-
-  const handleDiaClick = (dia) => {
-    if (dia) {
-      setDiaSelecionado(dia);
-    }
-  };
-
-  const handleEncaixarPaciente = () => {
-    setOpenDialog(true);
   };
 
   const handleConfirmarEncaixe = async () => {
@@ -173,12 +155,6 @@ const VerificarAgendamentos = () => {
       } catch (error) {
         console.error('Erro ao encaixar paciente:', error);
       }
-    }
-  };
-
-  const handleKeyPress = (event) => {
-    if (event.key === 'Enter') {
-      buscarPacientes(pacienteNome);
     }
   };
 
@@ -232,30 +208,12 @@ const VerificarAgendamentos = () => {
                     <Card key={agendamento.id} variant="outlined" className="agendamento-card" style={{ backgroundColor: getStatusColor(agendamento.status || 'pendente') }}>
                       <CardContent className="card-content">
                         <Typography variant="subtitle1">{`Paciente: ${agendamento.pacienteNome || 'N/A'}`}</Typography>
-                        <Typography variant="body2">{`Horário: ${agendamento.horario}`}</Typography>
+                        <Typography variant="body2">{`Horário: ${format(agendamento.data, 'HH:mm')}`}</Typography>
                       </CardContent>
                       <CardActions className="card-actions">
-                        <Button
-                          size="small"
-                          className="button-confirmar"
-                          onClick={() => atualizarStatusAgendamento(agendamento.id, 'confirmado')}
-                        >
-                          Confirmar
-                        </Button>
-                        <Button
-                          size="small"
-                          className="button-desmarcar"
-                          onClick={() => atualizarStatusAgendamento(agendamento.id, 'desmarcado')}
-                        >
-                          Desmarcar
-                        </Button>
-                        <Button
-                          size="small"
-                          className="button-encaixar"
-                          onClick={handleEncaixarPaciente}
-                        >
-                          Encaixar
-                        </Button>
+                        <Button size="small" className="button-confirmar" onClick={() => atualizarStatusAgendamento(agendamento.id, 'confirmado')}>Confirmar</Button>
+                        <Button size="small" className="button-desmarcar" onClick={() => atualizarStatusAgendamento(agendamento.id, 'desmarcado')}>Desmarcar</Button>
+                        <Button size="small" className="button-encaixar" onClick={() => setOpenDialog(true)}>Encaixar</Button>
                       </CardActions>
                     </Card>
                   ))}
@@ -266,60 +224,6 @@ const VerificarAgendamentos = () => {
         </Box>
       )}
 
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} sx={{ '& .MuiDialog-paper': { width: '35vw', height: '35vh' } }}>
-        <DialogTitle>Encaixar Paciente</DialogTitle>
-        <DialogContent>
-          <Autocomplete
-            options={pacientes}
-            getOptionLabel={(option) => option.nome}
-            onInputChange={(event, newInputValue) => {
-              setPacienteNome(newInputValue);
-              buscarPacientes(newInputValue);
-            }}
-            onChange={(event, newValue) => {
-              setSelectedPaciente(newValue);
-            }}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Nome do Paciente"
-                variant="outlined"
-                fullWidth
-                margin="dense"
-                onKeyPress={handleKeyPress}
-              />
-            )}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)} color="primary">Cancelar</Button>
-          <Button onClick={handleConfirmarEncaixe} color="primary">Confirmar</Button>
-        </DialogActions>
-      </Dialog>
-
-      <Box className="legenda-container">
-        <Typography variant="h6">Legenda:</Typography>
-        <Box className="legenda">
-          <Box className="legenda-item">
-            <Box className="legenda-cor" style={{ backgroundColor: 'lightgreen' }} />
-            <Typography>Confirmado</Typography>
-          </Box>
-          <Box className="legenda-item">
-            <Box className="legenda-cor" style={{ backgroundColor: 'lightcoral' }} />
-            <Typography>Desmarcado</Typography>
-          </Box>
-          <Box className="legenda-item">
-            <Box className="legenda-cor" style={{ backgroundColor: 'lightgoldenrodyellow' }} />
-            <Typography>Pendente</Typography>
-          </Box>
-          <Box className="legenda-item">
-            <Box className="legenda-cor" style={{ backgroundColor: 'lightblue' }} />
-            <Typography>Encaixado</Typography>
-          </Box>
-        </Box>
-      </Box>
-    </Box>
-  );
-};
-
-export default VerificarAgendamentos;
+      {/* Dialog */}
+      <Dialog open={openDialog} onClose={() =>
+    

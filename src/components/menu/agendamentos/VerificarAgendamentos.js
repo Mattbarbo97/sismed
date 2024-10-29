@@ -96,7 +96,7 @@ const VerificarAgendamentos = () => {
           console.error('Erro ao atualizar status dos agendamentos: ', error);
         }
       }
-    }, 50); // 3 minutos em milissegundos
+    }, 5000); // em milissegundos
 
     return () => clearInterval(interval);
   }, [medicoSelecionado, agendamentos]);
@@ -246,7 +246,7 @@ const VerificarAgendamentos = () => {
                               typeof agendamento.horario === 'string'
                                 ? agendamento.horario
                                 : agendamento.horario?.seconds
-                                ? format(new Date(agendamento.horario.seconds * 5), 'HH:mm')
+                                ? format(new Date(agendamento.horario.seconds * 1000), 'HH:mm')
                                 : 'N/A'
                             }`}
                           </Typography>

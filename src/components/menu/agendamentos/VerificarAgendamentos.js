@@ -61,10 +61,8 @@ const VerificarAgendamentos = () => {
           const querySnapshot = await getDocs(collection(db, 'agendamentos'));
           const agendamentosList = [];
           querySnapshot.forEach((doc) => {
-            console.log('Documento encontrado:', doc.id, doc.data());
             const data = doc.data();
             if (data && data.data) {
-              console.log('Data de agendamento encontrada:', data.data);
               const dataAgendamento = data.data.seconds ? new Date(data.data.seconds * 1000) : data.data;
               if (data.profissionalId === medicoSelecionado && isAfter(new Date(dataAgendamento), new Date())) {
                 agendamentosList.push({ id: doc.id, ...data, data: dataAgendamento });
@@ -118,16 +116,9 @@ const VerificarAgendamentos = () => {
   const atualizarStatusAgendamento = async (id, status) => {
     try {
       const docRef = doc(db, 'agendamentos', id);
-      console.log(`Atualizando agendamento ${id} para status ${status}`);
       await updateDoc(docRef, { status });
       setAgendamentos(prevAgendamentos => {
-        const novosAgendamentos = prevAgendamentos.map(ag => {
-          if (ag.id === id) {
-            return { ...ag, status };
-          }
-          return ag;
-        });
-        return novosAgendamentos;
+        return prevAgendamentos.map(ag => (ag.id === id ? { ...ag, status } : ag));
       });
     } catch (error) {
       console.error('Erro ao atualizar agendamento:', error);
@@ -139,12 +130,6 @@ const VerificarAgendamentos = () => {
     const pacientesSnapshot = await getDocs(query(collection(db, 'pacientes_cadastrados'), where('nome', '>=', nome), where('nome', '<=', nome + '\uf8ff')));
     const pacientesList = pacientesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     setPacientes(pacientesList);
-  };
-
-  const handleDiaClick = (dia) => {
-    if (dia) {
-      setDiaSelecionado(dia);
-    }
   };
 
   const handleEncaixarPaciente = () => {
@@ -191,6 +176,8 @@ const VerificarAgendamentos = () => {
         return 'lightgoldenrodyellow';
       case 'encaixado':
         return 'lightblue';
+      case 'chegou':
+        return 'yellow'; // Cor amarelo forte para o status "chegou"
       default:
         return 'white';
     }
@@ -264,6 +251,13 @@ const VerificarAgendamentos = () => {
                           >
                             Encaixar
                           </Button>
+                          <Button
+                            size="small"
+                            className="button-chegou"
+                            onClick={() => atualizarStatusAgendamento(agendamento.id, 'chegou')}
+                          >
+                            Chegou
+                          </Button>
                         </CardActions>
                       </Card>
                     ))}
@@ -316,6 +310,10 @@ const VerificarAgendamentos = () => {
             <Typography>Confirmado</Typography>
           </Box>
           <Box className="legenda-item">
+            <Box className="legenda-cor" style={{ backgroundColor: 'yellow' }} />
+            <Typography>Aguardando atendimento</Typography>
+          </Box>
+          <Box className="legenda-item">
             <Box className="legenda-cor" style={{ backgroundColor: 'lightcoral' }} />
             <Typography>Desmarcado</Typography>
           </Box>
@@ -325,7 +323,7 @@ const VerificarAgendamentos = () => {
           </Box>
           <Box className="legenda-item">
             <Box className="legenda-cor" style={{ backgroundColor: 'lightblue' }} />
-            <Typography>Encaixado</Typography>
+            <Typography>Encaixado</Typography> 
           </Box>
         </Box>
       </Box>

@@ -1,8 +1,8 @@
 /* eslint-disable */
-
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, doc, updateDoc, addDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../firebase';
+import { useNavigate } from 'react-router-dom';
 import MenuPrincipal from '../../menu/MenuPrincipal';
 import {
   Box,
@@ -14,177 +14,94 @@ import {
   Card,
   CardContent,
   CardActions,
-  Button,
-  TextField,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Autocomplete
+  Button
 } from '@mui/material';
-import { format, isValid, isAfter, parseISO } from 'date-fns';
+import { format, isAfter } from 'date-fns';
 import './VerificarAgendamentos.css';
 
 const VerificarAgendamentos = () => {
   const [agendamentos, setAgendamentos] = useState([]);
   const [medicos, setMedicos] = useState([]);
   const [medicoSelecionado, setMedicoSelecionado] = useState('');
-  const [diaSelecionado, setDiaSelecionado] = useState('');
-  const [openDialog, setOpenDialog] = useState(false);
-  const [pacienteNome, setPacienteNome] = useState('');
-  const [pacientes, setPacientes] = useState([]);
-  const [selectedPaciente, setSelectedPaciente] = useState(null);
+  const [pacientesMap, setPacientesMap] = useState({});
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchMedicos = async () => {
       try {
         const medicosSnapshot = await getDocs(collection(db, 'usuarios_cadastrados'));
         const medicosList = medicosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        // Ordena os médicos em ordem alfabética
         medicosList.sort((a, b) => a.nome.localeCompare(b.nome));
-
         setMedicos(medicosList);
       } catch (error) {
         console.error('Erro ao buscar médicos: ', error);
       }
     };
-
     fetchMedicos();
   }, []);
 
   useEffect(() => {
-    if (medicoSelecionado) {
-      const fetchAgendamentos = async () => {
-        try {
-          const querySnapshot = await getDocs(collection(db, 'agendamentos'));
-          const agendamentosList = [];
-          querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            if (data && data.data) {
-              const dataAgendamento = data.data.seconds ? new Date(data.data.seconds * 1000) : data.data;
-              if (data.profissionalId === medicoSelecionado && isAfter(new Date(dataAgendamento), new Date())) {
-                agendamentosList.push({ id: doc.id, ...data, data: dataAgendamento });
-              }
-            }
-          });
-          setAgendamentos(agendamentosList);
-        } catch (error) {
-          console.error('Erro ao buscar agendamentos: ', error);
-        }
-      };
+    const fetchPacientes = async () => {
+      try {
+        const pacientesSnapshot = await getDocs(collection(db, 'pacientes_cadastrados'));
+        const pacientes = {};
+        pacientesSnapshot.forEach((doc) => {
+          const data = doc.data();
+          pacientes[data.nome] = data; // Adiciona o paciente ao JSON com o nome como chave
+        });
+        setPacientesMap(pacientes); // Armazena o JSON de pacientes
+      } catch (error) {
+        console.error('Erro ao buscar pacientes:', error);
+      }
+    };
+    fetchPacientes();
+  }, []);
 
+  const fetchPacienteProntuario = (pacienteNome) => {
+    const paciente = pacientesMap[pacienteNome];
+    return paciente ? paciente.numeroProntuario : 'N/A';
+  };
+
+  const fetchAgendamentos = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'agendamentos'));
+      const agendamentosList = [];
+      for (const doc of querySnapshot.docs) {
+        const data = doc.data();
+        if (data && data.data) {
+          const dataAgendamento = data.data.seconds ? new Date(data.data.seconds * 1000) : data.data;
+          if (data.profissionalId === medicoSelecionado) {
+            const numeroProntuario = fetchPacienteProntuario(data.pacienteNome);
+            agendamentosList.push({ id: doc.id, ...data, data: dataAgendamento, numeroProntuario });
+          }
+        }
+      }
+      setAgendamentos(agendamentosList);
+    } catch (error) {
+      console.error('Erro ao buscar agendamentos: ', error);
+    }
+  };
+
+  useEffect(() => {
+    if (medicoSelecionado) {
       fetchAgendamentos();
     }
   }, [medicoSelecionado]);
 
-  // Atualiza somente o status dos agendamentos a cada 3 minutos
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      if (medicoSelecionado) {
-        try {
-          const querySnapshot = await getDocs(collection(db, 'agendamentos'));
-          const updatedAgendamentos = agendamentos.map(agendamento => {
-            const updatedDoc = querySnapshot.docs.find(doc => doc.id === agendamento.id);
-            if (updatedDoc) {
-              return { ...agendamento, status: updatedDoc.data().status };
-            }
-            return agendamento;
-          });
-          setAgendamentos(updatedAgendamentos);
-        } catch (error) {
-          console.error('Erro ao atualizar status dos agendamentos: ', error);
-        }
-      }
-    }, 5000); // em milissegundos
+const irParaProntuario = () => {
+  navigate('/criar-prontuario');
+};
 
-    return () => clearInterval(interval);
-  }, [medicoSelecionado, agendamentos]);
-
-  const agruparAgendamentosPorMes = (agendamentos) => {
-    return agendamentos.reduce((grupo, agendamento) => {
-      const data = agendamento.data;
-      if (!isValid(new Date(data))) {
-        console.error('Data inválida:', data);
-        return grupo;
-      }
-      const formattedMonth = format(new Date(data), 'yyyy-MM');
-      if (!grupo[formattedMonth]) {
-        grupo[formattedMonth] = [];
-      }
-      grupo[formattedMonth].push(agendamento);
-      return grupo;
-    }, {});
-  };
-
-  const agruparAgendamentosPorData = (agendamentos) => {
-    return agendamentos.reduce((grupo, agendamento) => {
-      const data = agendamento.data;
-      if (!isValid(new Date(data))) {
-        console.error('Data inválida:', data);
-        return grupo;
-      }
-      const formattedDate = format(new Date(data), 'yyyy-MM-dd');
-      if (!grupo[formattedDate]) {
-        grupo[formattedDate] = [];
-      }
-      grupo[formattedDate].push(agendamento);
-      return grupo;
-    }, {});
-  };
-
-  const agendamentosAgrupadosPorMes = agruparAgendamentosPorMes(agendamentos);
 
   const atualizarStatusAgendamento = async (id, status) => {
     try {
       const docRef = doc(db, 'agendamentos', id);
       await updateDoc(docRef, { status });
-      setAgendamentos(prevAgendamentos => {
-        return prevAgendamentos.map(ag => (ag.id === id ? { ...ag, status } : ag));
-      });
+      setAgendamentos(prevAgendamentos =>
+        prevAgendamentos.map(ag => (ag.id === id ? { ...ag, status } : ag))
+      );
     } catch (error) {
       console.error('Erro ao atualizar agendamento:', error);
-    }
-  };
-
-  const buscarPacientes = async (nome) => {
-    if (!nome) return;
-    const pacientesSnapshot = await getDocs(query(collection(db, 'pacientes_cadastrados'), where('nome', '>=', nome), where('nome', '<=', nome + '\uf8ff')));
-    const pacientesList = pacientesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    setPacientes(pacientesList);
-  };
-
-  const handleEncaixarPaciente = () => {
-    setOpenDialog(true);
-  };
-
-  const handleConfirmarEncaixe = async () => {
-    if (selectedPaciente && medicoSelecionado) {
-      try {
-        const agendamentoOriginal = agendamentos.find(ag => ag.data.getTime() === new Date(diaSelecionado).getTime() && ag.profissionalId === medicoSelecionado);
-        if (agendamentoOriginal) {
-          const novoAgendamento = {
-            profissionalId: medicoSelecionado,
-            pacienteNome: selectedPaciente.nome,
-            horario: agendamentoOriginal.horario,
-            status: 'encaixado',
-            data: agendamentoOriginal.data
-          };
-          await addDoc(collection(db, 'agendamentos'), novoAgendamento);
-          setAgendamentos([...agendamentos, novoAgendamento]);
-          setOpenDialog(false);
-          setPacienteNome('');
-          setPacientes([]);
-        }
-      } catch (error) {
-        console.error('Erro ao encaixar paciente:', error);
-      }
-    }
-  };
-
-  const handleKeyPress = (event) => {
-    if (event.key === 'Enter') {
-      buscarPacientes(pacienteNome);
     }
   };
 
@@ -227,65 +144,45 @@ const VerificarAgendamentos = () => {
       {medicoSelecionado && (
         <Box className="agendamentos-list-container">
           {agendamentos.length > 0 ? (
-            Object.keys(agendamentosAgrupadosPorMes).map((mes) => (
-              <Box key={mes} className="agendamentos-mes">
-                <Typography variant="h5" className="agendamentos-mes-titulo">
-                  {format(parseISO(`${mes}-01`), 'MMMM yyyy')}
-                </Typography>
-                {Object.keys(agruparAgendamentosPorData(agendamentosAgrupadosPorMes[mes])).map((data) => (
-                  <Box key={data} className="agendamentos-dia">
-                    <Typography variant="h6" className="agendamentos-dia-titulo">
-                      {format(new Date(data), 'dd/MM/yyyy')}
-                    </Typography>
-                    {agruparAgendamentosPorData(agendamentosAgrupadosPorMes[mes])[data].map((agendamento) => (
-                      <Card key={agendamento.id} variant="outlined" className="agendamento-card" style={{ backgroundColor: getStatusColor(agendamento.status || 'pendente') }}>
-                        <CardContent className="card-content">
-                          <Typography variant="subtitle1">{`Paciente: ${agendamento.pacienteNome || 'N/A'}`}</Typography>
-                          <Typography variant="body2">
-                            {`Horário: ${
-                              typeof agendamento.horario === 'string'
-                                ? agendamento.horario
-                                : agendamento.horario?.seconds
-                                ? format(new Date(agendamento.horario.seconds * 1000), 'HH:mm')
-                                : 'N/A'
-                            }`}
-                          </Typography>
-                        </CardContent>
-                        <CardActions className="card-actions">
-                          <Button
-                            size="small"
-                            className="button-confirmar"
-                            onClick={() => atualizarStatusAgendamento(agendamento.id, 'confirmado')}
-                          >
-                            Confirmar
-                          </Button>
-                          <Button
-                            size="small"
-                            className="button-desmarcar"
-                            onClick={() => atualizarStatusAgendamento(agendamento.id, 'desmarcado')}
-                          >
-                            Desmarcar
-                          </Button>
-                          <Button
-                            size="small"
-                            className="button-encaixar"
-                            onClick={handleEncaixarPaciente}
-                          >
-                            Encaixar
-                          </Button>
-                          <Button
-                            size="small"
-                            className="button-chegou"
-                            onClick={() => atualizarStatusAgendamento(agendamento.id, 'chegou')}
-                          >
-                            Chegou
-                          </Button>
-                        </CardActions>
-                      </Card>
-                    ))}
-                  </Box>
-                ))}
-              </Box>
+            agendamentos.map((agendamento) => (
+              <Card key={agendamento.id} variant="outlined" className="agendamento-card" style={{ backgroundColor: getStatusColor(agendamento.status || 'pendente') }}>
+                <CardContent className="card-content">
+                  <Typography variant="subtitle1">Paciente: {agendamento.pacienteNome || 'N/A'}</Typography>
+                  <Typography variant="body2">Horário: {format(new Date(agendamento.data), 'HH:mm')}</Typography>
+                  <Typography variant="body2">Nº Prontuário: {agendamento.numeroProntuario || 'N/A'}</Typography>
+                </CardContent>
+                <CardActions className="card-actions">
+                  <Button
+                    size="small"
+                    className="button-confirmar"
+                    onClick={() => atualizarStatusAgendamento(agendamento.id, 'confirmado')}
+                  >
+                    Confirmar
+                  </Button>
+                  <Button
+                    size="small"
+                    className="button-desmarcar"
+                    onClick={() => atualizarStatusAgendamento(agendamento.id, 'desmarcado')}
+                  >
+                    Desmarcar
+                  </Button>
+                  <Button
+                    size="small"
+                    className="button-chegou"
+                    onClick={() => atualizarStatusAgendamento(agendamento.id, 'chegou')}
+                  >
+                    Chegou
+                  </Button>
+                  <Button
+                    size="small"
+                    className="button-prontuario"
+                   onClick={() => irParaProntuario()}
+                  >
+                  Ver Prontuário
+                 </Button>
+
+                </CardActions>
+              </Card>
             ))
           ) : (
             <Typography variant="h6" className="nenhum-agendamento">Nenhum agendamento encontrado para o médico selecionado.</Typography>

@@ -56,7 +56,6 @@ const VerificarAgendamentos = () => {
   useEffect(() => {
     if (medicoSelecionado) {
       const fetchAgendamentos = async () => {
-        console.log('Buscando agendamentos para o médico selecionado:', medicoSelecionado);
         try {
           const querySnapshot = await getDocs(collection(db, 'agendamentos'));
           const agendamentosList = [];
@@ -78,6 +77,29 @@ const VerificarAgendamentos = () => {
       fetchAgendamentos();
     }
   }, [medicoSelecionado]);
+
+  // Atualiza somente o status dos agendamentos a cada 3 minutos
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (medicoSelecionado) {
+        try {
+          const querySnapshot = await getDocs(collection(db, 'agendamentos'));
+          const updatedAgendamentos = agendamentos.map(agendamento => {
+            const updatedDoc = querySnapshot.docs.find(doc => doc.id === agendamento.id);
+            if (updatedDoc) {
+              return { ...agendamento, status: updatedDoc.data().status };
+            }
+            return agendamento;
+          });
+          setAgendamentos(updatedAgendamentos);
+        } catch (error) {
+          console.error('Erro ao atualizar status dos agendamentos: ', error);
+        }
+      }
+    }, 50); // 3 minutos em milissegundos
+
+    return () => clearInterval(interval);
+  }, [medicoSelecionado, agendamentos]);
 
   const agruparAgendamentosPorMes = (agendamentos) => {
     return agendamentos.reduce((grupo, agendamento) => {
@@ -177,7 +199,7 @@ const VerificarAgendamentos = () => {
       case 'encaixado':
         return 'lightblue';
       case 'chegou':
-        return 'yellow'; // Cor amarelo forte para o status "chegou"
+        return 'yellow';
       default:
         return 'white';
     }
@@ -224,7 +246,7 @@ const VerificarAgendamentos = () => {
                               typeof agendamento.horario === 'string'
                                 ? agendamento.horario
                                 : agendamento.horario?.seconds
-                                ? format(new Date(agendamento.horario.seconds * 1000), 'HH:mm')
+                                ? format(new Date(agendamento.horario.seconds * 5), 'HH:mm')
                                 : 'N/A'
                             }`}
                           </Typography>
@@ -270,65 +292,8 @@ const VerificarAgendamentos = () => {
           )}
         </Box>
       )}
-
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} sx={{ '& .MuiDialog-paper': { width: '35vw', height: '35vh' } }}>
-        <DialogTitle>Encaixar Paciente</DialogTitle>
-        <DialogContent>
-          <Autocomplete
-            options={pacientes}
-            getOptionLabel={(option) => option.nome}
-            onInputChange={(event, newInputValue) => {
-              setPacienteNome(newInputValue);
-              buscarPacientes(newInputValue);
-            }}
-            onChange={(event, newValue) => {
-              setSelectedPaciente(newValue);
-            }}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Nome do Paciente"
-                variant="outlined"
-                fullWidth
-                margin="dense"
-                onKeyPress={handleKeyPress}
-              />
-            )}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)} color="primary">Cancelar</Button>
-          <Button onClick={handleConfirmarEncaixe} color="primary">Confirmar</Button>
-        </DialogActions>
-      </Dialog>
-
-      <Box className="legenda-container">
-        <Typography variant="h6">Legenda:</Typography>
-        <Box className="legenda">
-          <Box className="legenda-item">
-            <Box className="legenda-cor" style={{ backgroundColor: 'lightgreen' }} />
-            <Typography>Confirmado</Typography>
-          </Box>
-          <Box className="legenda-item">
-            <Box className="legenda-cor" style={{ backgroundColor: 'yellow' }} />
-            <Typography>Aguardando atendimento</Typography>
-          </Box>
-          <Box className="legenda-item">
-            <Box className="legenda-cor" style={{ backgroundColor: 'lightcoral' }} />
-            <Typography>Desmarcado</Typography>
-          </Box>
-          <Box className="legenda-item">
-            <Box className="legenda-cor" style={{ backgroundColor: 'lightgoldenrodyellow' }} />
-            <Typography>Pendente</Typography>
-          </Box>
-          <Box className="legenda-item">
-            <Box className="legenda-cor" style={{ backgroundColor: 'lightblue' }} />
-            <Typography>Encaixado</Typography> 
-          </Box>
-        </Box>
-      </Box>
     </Box>
   );
 };
-  
+
 export default VerificarAgendamentos;

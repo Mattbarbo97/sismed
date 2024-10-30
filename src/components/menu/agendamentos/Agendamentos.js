@@ -329,9 +329,9 @@ function Agendamento() {
     }
   };
 
-  const handleCadastroPacienteClick = () => {
-    navigate('/cadastro-paciente');
-  };
+const handleCadastroPacienteClick = () => {
+  navigate('/pre-cadastro');
+};
 
   return (
     <Container maxWidth="md">

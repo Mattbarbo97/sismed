@@ -26,11 +26,65 @@
   width: 100%;
 }
 
-.dia-container {
+/* Main content layout */
+.main-content {
+  display: flex;
+  width: 100%;
+  max-width: 1200px;
+}
+
+/* Year list styles */
+.year-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 150px;
+  margin-right: 20px;
+  border-right: 1px solid #ddd;
+  padding-right: 10px;
+}
+
+.year-button {
+  margin-bottom: 10px;
+  cursor: pointer;
+  padding: 8px;
+  background-color: #f5f5f5;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+}
+
+.year-button:hover {
+  background-color: #e0e0e0;
+}
+
+/* Month list styles */
+.month-list {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+.month-button {
+  margin: 0 5px;
+  padding: 8px;
+  background-color: #f5f5f5;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+}
+
+.month-button:hover {
+  background-color: #e0e0e0;
+}
+
+/* Day list styles */
+.day-list {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  margin-bottom: 20px;
+  margin: 10px 0;
+  padding: 0 10px;
 }
 
 .dia-button {
@@ -50,6 +104,7 @@
   background-color: #d0d0d0;
 }
 
+/* Appointments container */
 .agendamento-container {
   width: 100%;
   max-width: 600px;
@@ -71,6 +126,7 @@
   margin-bottom: 10px;
 }
 
+/* Status colors */
 .status-pendente {
   border-left: 5px solid orange;
 }
@@ -87,6 +143,7 @@
   border-left: 5px solid blue;
 }
 
+/* Card styling */
 .card-content {
   display: flex;
   flex-direction: column;
@@ -109,10 +166,12 @@
   color: blue;
 }
 
+/* Invalid date styling */
 .invalid-date {
   color: red;
 }
 
+/* Legend container styling */
 .legenda-container {
   margin-top: 20px;
   width: 100%;
@@ -156,7 +215,7 @@
   background-color: blue;
 }
 
-/* Estilos responsivos */
+/* Responsive styles */
 @media (max-width: 600px) {
   .header-container {
     width: 100%;

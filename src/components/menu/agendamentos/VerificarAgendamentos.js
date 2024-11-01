@@ -59,11 +59,6 @@ const VerificarAgendamentos = () => {
     fetchPacientes();
   }, []);
 
-  const fetchPacienteProntuario = (pacienteNome) => {
-    const paciente = pacientesMap[pacienteNome];
-    return paciente ? paciente.numeroProntuario : 'N/A';
-  };
-
   const fetchAgendamentos = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, 'agendamentos'));
@@ -74,19 +69,16 @@ const VerificarAgendamentos = () => {
         if (data && data.data) {
           const dataAgendamento = data.data.seconds ? new Date(data.data.seconds * 1000) : data.data;
           if (data.profissionalId === medicoSelecionado) {
-            const numeroProntuario = fetchPacienteProntuario(data.pacienteNome);
-            // Use the horario field for the appointment time display
             agendamentosList.push({
               id: doc.id,
               ...data,
               data: dataAgendamento,
-              numeroProntuario,
-              horario: data.horario // Added to capture the horario field
+              horario: data.horario // Mantém a captura do horário
             });
           }
         }
       }
-      // Sort appointments from the earliest to the latest
+      // Ordenar agendamentos do mais cedo para o mais tarde
       agendamentosList.sort((a, b) => a.data - b.data);
       setAgendamentos(agendamentosList);
     } catch (error) {
@@ -118,9 +110,17 @@ const VerificarAgendamentos = () => {
 
   const groupedAgendamentos = organizarAgendamentos();
 
-  const irParaProntuario = () => {
-    navigate('/criar-prontuario');
-  };
+const irParaProntuario = (pacienteNome) => {
+    try {
+        localStorage.setItem('pacienteNome', pacienteNome);
+        console.log("Nome do paciente:", pacienteNome); // Verifique se o nome está correto
+        navigate('/criar-prontuario');
+    } catch (error) {
+        console.error('Erro ao navegar para o prontuário:', error);
+    }
+};
+
+
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -197,24 +197,24 @@ const VerificarAgendamentos = () => {
         {selectedYear && selectedMonth && selectedDay && (
           <Box className="appointment-list">
             <Typography variant="h6">{`${selectedDay} - ${selectedMonth} - ${selectedYear}`}</Typography>
-            {(groupedAgendamentos[selectedYear]?.[selectedMonth]?.[selectedDay] || []).map((agendamento) => (
-              <Card
-                key={agendamento.id}
-                variant="outlined"
-                className="agendamento-card"
-                style={{
-                  backgroundColor: getStatusColor(agendamento.status || 'pendente'),
-                  minWidth: '300px',
-                  margin: '16px',
-                }}
-              >
-                <CardContent className="card-content">
-                  <Typography variant="subtitle1">Paciente: {agendamento.pacienteNome || 'N/A'}</Typography>
-                  <Typography variant="body2">Horário: {agendamento.horario || 'N/A'}</Typography>
-                  <Typography variant="body2">Nº Prontuário: {agendamento.numeroProntuario || 'N/A'}</Typography>
-                </CardContent>
-                <CardActions className="card-actions">
-                  <Button size="small" onClick={() => irParaProntuario()}>Ver Prontuário</Button>
+    {(groupedAgendamentos[selectedYear]?.[selectedMonth]?.[selectedDay] || []).map((agendamento) => (
+    <Card
+        key={agendamento.id}
+        variant="outlined"
+        className="agendamento-card"
+        style={{
+            backgroundColor: getStatusColor(agendamento.status || 'pendente'),
+            minWidth: '300px',
+            margin: '16px',
+        }}
+    >
+        <CardContent className="card-content">
+            <Typography variant="subtitle1">Paciente: {agendamento.pacienteNome || 'N/A'}</Typography>
+            <Typography variant="body2">Horário: {agendamento.horario || 'N/A'}</Typography>
+        </CardContent>
+        <CardActions className="card-actions">
+            <Button size="small" onClick={() => irParaProntuario(agendamento.pacienteNome)}>Ver Prontuário</Button>
+                  
                   <Button size="small" onClick={() => updateAppointmentStatus(agendamento.id, 'confirmado')}>Confirmar</Button>
                   <Button size="small" onClick={() => updateAppointmentStatus(agendamento.id, 'desmarcado')}>Desmarcar</Button>
                   <Button size="small" onClick={() => updateAppointmentStatus(agendamento.id, 'encaixado')}>Encaixar</Button>

@@ -63,34 +63,50 @@ const VerificarAgendamentos = () => {
     try {
       const querySnapshot = await getDocs(collection(db, 'agendamentos'));
       const agendamentosList = [];
-
-      for (const doc of querySnapshot.docs) {
+  
+      querySnapshot.docs.forEach((doc) => {
         const data = doc.data();
         if (data && data.data) {
-          const dataAgendamento = data.data.seconds ? new Date(data.data.seconds * 1000) : data.data;
+          const dataAgendamento = data.data.seconds
+            ? new Date(data.data.seconds * 1000)
+            : data.data;
+  
           if (data.profissionalId === medicoSelecionado) {
             agendamentosList.push({
               id: doc.id,
               ...data,
               data: dataAgendamento,
-              horario: data.horario
+              horario: data.horario,
             });
           }
         }
-      }
-
-      agendamentosList.sort((a, b) => a.data - b.data);
+      });
+  
+      // Ordena por data e horário
+      agendamentosList.sort((a, b) => {
+        const dateComparison = a.data - b.data;
+        if (dateComparison !== 0) return dateComparison;
+  
+        const [hoursA, minutesA] = a.horario.split(':').map(Number);
+        const [hoursB, minutesB] = b.horario.split(':').map(Number);
+  
+        return hoursA !== hoursB ? hoursA - hoursB : minutesA - minutesB;
+      });
+  
+      // Atualiza o estado
       setAgendamentos(agendamentosList);
     } catch (error) {
-      console.error('Erro ao buscar agendamentos: ', error);
+      console.error('Erro ao buscar agendamentos:', error);
     }
   };
+  
 
   useEffect(() => {
     if (medicoSelecionado) {
       fetchAgendamentos();
     }
   }, [medicoSelecionado]);
+  
 
   const organizarAgendamentos = () => {
     const grouped = {};

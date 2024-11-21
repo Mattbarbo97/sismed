@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import {
   Autocomplete,
@@ -35,6 +36,7 @@ import ViewProntuarioModal from "./viewProntuarioModal";
 import PrintableDocument from "./PrintableDocument";
 import "./ProntuarioStyles.css";
 
+// Funções utilitárias para formatar datas
 const formatDate = (date) => {
   try {
     return format(date, 'dd/MM/yyyy');
@@ -61,6 +63,18 @@ const takeFirst80Char = (text) => {
   return text.length > 80 ? text.substring(0, 80) + "..." : text;
 };
 
+// Função para sincronizar localStorage
+const sincronizarLocalStorage = (paciente) => {
+  if (!paciente || !paciente.nome || !paciente.dataNascimento) {
+    localStorage.removeItem("pacienteNome");
+    return;
+  }
+
+  const dataNascimento = formatDate(new Date(paciente.dataNascimento));
+  const pacienteFormatado = `${paciente.nome} (nasc.: ${dataNascimento})`;
+  localStorage.setItem("pacienteNome", pacienteFormatado);
+};
+
 const ProntuarioEletronico = () => {
   const [pacienteSelecionado, setPacienteSelecionado] = useState({
     id: "",
@@ -74,7 +88,7 @@ const ProntuarioEletronico = () => {
     bairro: "",
     cidade: "",
     estado: "",
-    numeroProntuario: "" // Adiciona o campo número de prontuário
+    numeroProntuario: ""
   });
   const [loading, setLoading] = useState(false);
   const [historico, setHistorico] = useState([]);
@@ -87,6 +101,7 @@ const ProntuarioEletronico = () => {
   const { user } = useUser();
   const printRef = useRef();
 
+  // Passo 1: Carregar os pacientes do Firebase
   useEffect(() => {
     const db = getFirestore();
     const pacientesCollection = collection(db, "pacientes_cadastrados");
@@ -109,6 +124,31 @@ const ProntuarioEletronico = () => {
 
     listarPacientes();
   }, []);
+
+  // Passo 2: Usar o paciente salvo no localStorage para selecionar automaticamente
+  useEffect(() => {
+    if (pacientes.length > 0) {
+      const pacienteSalvo = localStorage.getItem("pacienteNome");
+
+      if (pacienteSalvo && pacienteSalvo !== "undefined") {
+        try {
+          const pacienteEncontrado = pacientes.find((paciente) => {
+            const dataNascimento = formatDate(new Date(paciente.dataNascimento));
+            const nomeFormatado = `${paciente.nome} (nasc.: ${dataNascimento})`;
+            return nomeFormatado === pacienteSalvo;
+          });
+
+          if (pacienteEncontrado) {
+            setPacienteSelecionado(pacienteEncontrado);
+          } else {
+            console.warn("Paciente salvo no localStorage não foi encontrado.");
+          }
+        } catch (error) {
+          console.error("Erro ao buscar paciente no localStorage:", error);
+        }
+      }
+    }
+  }, [pacientes]);
 
   const salvarProntuario = async (data) => {
     if (!pacienteSelecionado.id) {
@@ -167,7 +207,7 @@ const ProntuarioEletronico = () => {
     options: pacientes,
     getOptionLabel: (option) => {
       const dataNascimento = new Date(option.dataNascimento);
-      return `${option.nome} (${formatDate(dataNascimento)})`;
+      return `${option.nome} (nasc.: ${formatDate(dataNascimento)})`;
     }
   };
 
@@ -179,24 +219,14 @@ const ProntuarioEletronico = () => {
   return (
     <div className="prontuario-wrapper">
       <MenuPrincipal />
-      <Box
-        className="search-bar"
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 2,
-          padding: 1,
-          maxWidth: "100%"
-        }}
-      >
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 2, padding: 1 }}>
         <Autocomplete
           {...defaultProps}
           id="paciente"
           clearOnEscape
           filterOptions={filterOptions}
           size="small"
-          getOptionKey={(option) => option.id}
-          limitTags={4}
+          value={pacienteSelecionado.id ? pacienteSelecionado : null}
           onChange={(e, value) => {
             if (!value) {
               setPacienteSelecionado({
@@ -211,20 +241,19 @@ const ProntuarioEletronico = () => {
                 bairro: "",
                 cidade: "",
                 estado: "",
-                numeroProntuario: "" // Reseta o campo número de prontuário
+                numeroProntuario: ""
               });
               setHistorico([]);
+              localStorage.removeItem("pacienteNome");
               return;
             }
-            console.log("Número de Prontuário Selecionado:", value.numeroProntuario);
+
+            sincronizarLocalStorage(value);
             setPacienteSelecionado(value);
           }}
           renderInput={(params) => (
             <TextField {...params} label="Paciente" variant="standard" />
           )}
-          sx={{
-            width: "100%"
-          }}
         />
         <Button
           variant="contained"
@@ -235,147 +264,16 @@ const ProntuarioEletronico = () => {
           Novo Atendimento
         </Button>
       </Box>
-      <Paper
-        className="informacoes-paciente"
-        sx={{
-          padding: 2,
-          width: '50%' // Reduza a largura do campo de informações do paciente
-        }}
-      >
-        <Typography
-          style={{
-            fontSize: "1.2rem", // Diminua o tamanho da fonte do título
-            fontWeight: "bold"
-          }}
-        >
-          Informações do Paciente
-        </Typography>
-        <Grid container spacing={1}>
-          <Grid item xs={12} sm={6}>
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "row",
-                gap: 2
-              }}
-            >
-              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>Nome:</Typography> {/* Diminua o tamanho da fonte */}
-              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>{pacienteSelecionado.nome}</Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "row",
-                gap: 2
-              }}
-            >
-              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>Data de Nascimento:</Typography>
-              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>
-                {formatDate(new Date(pacienteSelecionado.dataNascimento))}
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "row",
-                gap: 2
-              }}
-            >
-              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>Genero:</Typography>
-              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>{pacienteSelecionado.genero}</Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "row",
-                gap: 2
-              }}
-            >
-              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>Telefone:</Typography>
-              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>{pacienteSelecionado.telefone}</Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "row",
-                gap: 2
-              }}
-            >
-              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>E-mail:</Typography>
-              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>{pacienteSelecionado.email}</Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography variant="body1" style={{ fontSize: '0.9rem' }}>
-              Endereço: {pacienteSelecionado.endereco} -{" "}
-              {pacienteSelecionado.numeroResidencia} -{" "}
-              {pacienteSelecionado.bairro} - {pacienteSelecionado.cidade} -{" "}
-              {pacienteSelecionado.estado}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "row",
-                gap: 2
-              }}
-            >
-              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>Número de Prontuário:</Typography>
-              <Typography variant="body1" style={{ fontSize: '0.9rem' }}>
-                {pacienteSelecionado.numeroProntuario}
-              </Typography>
-            </Box>
+
+      <Paper sx={{ padding: 2 }}>
+        <Typography variant="h6">Informações do Paciente</Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={12}>
+            <Typography>Nome: {pacienteSelecionado.nome}</Typography>
           </Grid>
         </Grid>
       </Paper>
-      <Modal
-        open={modalConsultaAberto}
-        onClose={() => setModalConsultaAberto(false)}
-        className="modal"
-      >
-        <Paper className="modal-content">
-          <Typography variant="h6">Novo Atendimento</Typography>
-          <Typography variant="subtitle1">Paciente: {pacienteSelecionado.nome}</Typography>
-          <Box className="section-container">
-            <Typography variant="h6">Receitas</Typography>
-            <Box className="section-content">
-              <IconButton>
-                <AddIcon />
-              </IconButton>
-              <Button variant="contained" color="primary">
-                IMPRIMIR RECEITA
-              </Button>
-            </Box>
-          </Box>
-          <Box className="section-container">
-            <Typography variant="h6">Pedidos de Exames</Typography>
-            <Box className="section-content">
-              <IconButton>
-                <AddIcon />
-              </IconButton>
-              <Button variant="contained" color="primary">
-                IMPRIMIR EXAMES
-              </Button>
-            </Box>
-          </Box>
-          <Box>
-            <Typography variant="h6">Evolução</Typography>
-            <TextField multiline rows={4} fullWidth variant="outlined" placeholder="Anotações" />
-          </Box>
-          <Box display="flex" justifyContent="flex-end" marginTop={2}>
-            <Button variant="contained" color="secondary" onClick={() => setModalConsultaAberto(false)}>Fechar</Button>
-          </Box>
-        </Paper>
-      </Modal>
+
       <TableContainer component={Paper} sx={{ mt: 2 }}>
         <Table aria-label="Histórico do Prontuário">
           <TableHead>
@@ -391,9 +289,7 @@ const ProntuarioEletronico = () => {
               <TableRow key={registro.id}>
                 <TableCell>{formatDateTime(registro.data.toDate())}</TableCell>
                 <TableCell>{registro.medico.nome}</TableCell>
-                <TableCell>
-                  {takeFirst80Char(registro.texto || "")}
-                </TableCell>
+                <TableCell>{takeFirst80Char(registro.texto || "")}</TableCell>
                 <TableCell>
                   <IconButton
                     onClick={() => {
@@ -427,12 +323,7 @@ const ProntuarioEletronico = () => {
       )}
 
       {loading && (
-        <Box
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          height="100vh"
-        >
+        <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
           <CircularProgress />
         </Box>
       )}

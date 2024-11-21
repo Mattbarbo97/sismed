@@ -110,15 +110,16 @@ const VerificarAgendamentos = () => {
 
   const groupedAgendamentos = organizarAgendamentos();
 
-const irParaProntuario = (pacienteNome) => {
+  const irParaProntuario = (pacienteNome) => {
     try {
         localStorage.setItem('pacienteNome', pacienteNome);
         console.log("Nome do paciente:", pacienteNome); // Verifique se o nome está correto
-        navigate('/criar-prontuario');
+        window.open('/criar-prontuario', '_blank'); // Abre em outra aba
     } catch (error) {
         console.error('Erro ao navegar para o prontuário:', error);
     }
 };
+
 
 
 

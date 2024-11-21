@@ -12,7 +12,7 @@ import { format } from 'date-fns';
 import { useUser } from '../../../context/UserContext';
 import { storage, db } from "../../../firebase"; // Importando o firebase storage e firestore configurado
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { doc, updateDoc, arrayUnion, getDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc, arrayUnion, getDoc } from "firebase/firestore";
 
 const timeZone = 'America/Sao_Paulo';
 
@@ -71,49 +71,60 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
     }
   }, [open, paciente?.id]);
 
-  const formik = useFormik({
-    initialValues: {
-      receitas: [],
-      exames: [],
-      anotacoes: "",
-      dataAtendimento: getBrazilTime(),
-      horaAtendimento: getBrazilTime()
-    },
-    validationSchema: validationSchema,
-    onSubmit: async (values) => {
-      setIsUploading(true);
-      setErrorMessage("");
-      let fileUrl = null;
-      try {
-        if (file) {
-          const formattedDate = values.dataAtendimento.split('/').reverse().join('-'); // Corrigir a data para o formato correto
-          fileUrl = await uploadFileToFirebase(file, paciente.id, formattedDate);
-        }
+  
+const formik = useFormik({
+  initialValues: {
+    receitas: [],
+    exames: [],
+    anotacoes: "",
+    dataAtendimento: getBrazilTime(),
+    horaAtendimento: getBrazilTime(),
+  },
+  validationSchema: validationSchema,
+  onSubmit: async (values) => {
+    setIsUploading(true);
+    setErrorMessage("");
+    let fileUrl = null;
 
-        // Atualizar os documentos do paciente no Firestore
-        const patientRef = doc(db, "prontuarios", paciente.id);
-        await updateDoc(patientRef, {
-          documentos: arrayUnion({
-            fileUrl: fileUrl,
-            fileCaption: fileCaption,
-            fileName: file.name,
-            fileType: file.type,
-            dataUpload: new Date().toISOString(),
-          }),
-        });
-
-        handleSave({ ...values, fileUrl, fileCaption, paciente });
-        formik.resetForm();
-        setFile(null);
-        setFileCaption("");
-      } catch (error) {
-        console.error("Erro ao fazer upload do arquivo:", error);
-        setErrorMessage("Erro ao salvar o prontuário. Verifique sua conexão e tente novamente.");
-      } finally {
-        setIsUploading(false);
+    try {
+      // Realiza o upload do arquivo, se existir
+      if (file) {
+        console.log("Uploading file...");
+        const formattedDate = format(new Date(values.dataAtendimento), "yyyy-MM-dd");
+        fileUrl = await uploadFileToFirebase(file, paciente.id, formattedDate);
+        console.log("File uploaded successfully:", fileUrl);
       }
-    },
-  });
+
+      console.log("Salvando documento no Firestore...");
+
+      const patientRef = doc(db, "prontuarios", paciente.id);
+      
+      // Usa setDoc para criar ou atualizar o documento
+      await setDoc(patientRef, {
+        documentos: arrayUnion({
+          fileUrl: fileUrl,
+          fileCaption: fileCaption,
+          fileName: file?.name || "",
+          fileType: file?.type || "",
+          dataUpload: new Date().toISOString(),
+        }),
+      }, { merge: true }); // Com merge: true, não sobrescrevemos outros campos
+
+      console.log("Documento salvo com sucesso no Firestore");
+
+      handleSave({ ...values, fileUrl, fileCaption, paciente });
+      formik.resetForm();
+      setFile(null);
+      setFileCaption("");
+    } catch (error) {
+      console.error("Erro ao salvar o prontuário:", error);
+      setErrorMessage("Erro ao salvar o prontuário. Verifique sua conexão e tente novamente.");
+    } finally {
+      setIsUploading(false);
+    }
+  },
+});
+  
 
   const handleKeyDown = (event, field, index) => {
     if (event.key === 'Enter') {
@@ -485,9 +496,15 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
 export default MedicalConsultationModal;
 
 const uploadFileToFirebase = async (file, pacienteId, dataAtendimento) => {
-  const date = new Date(dataAtendimento).toISOString().split('T')[0];
-  const storageRef = ref(storage, `prontuarios/${pacienteId}/${date}/${file.name}`);
-  const snapshot = await uploadBytes(storageRef, file);
-  const url = await getDownloadURL(snapshot.ref);
-  return url;
+  try {
+    const date = new Date(dataAtendimento).toISOString().split('T')[0];
+    const storageRef = ref(storage, `prontuarios/${pacienteId}/${date}/${file.name}`);
+    const snapshot = await uploadBytes(storageRef, file);
+    const url = await getDownloadURL(snapshot.ref);
+    return url;
+  } catch (error) {
+    console.error("Erro ao fazer upload do arquivo:", error);
+    throw new Error("Não foi possível fazer upload do arquivo");
+  }
 };
+

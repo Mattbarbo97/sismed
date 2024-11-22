@@ -220,6 +220,23 @@ const VerificarAgendamentos = () => {
             {(groupedAgendamentos[selectedYear]?.[selectedMonth]?.[selectedDay] || []).map(
               (agendamento) => (
                 <Card
+<<<<<<< HEAD
+                key={agendamento.id}
+                variant="outlined"
+                className="agendamento-card"
+                style={{
+                  backgroundColor: getStatusColor(agendamento.status || 'pendente'),
+                }}
+              >
+                <CardContent className="card-content">
+                  <Box className="card-info">
+                    <Typography variant="subtitle1">
+                      {agendamento.pacienteNome?.split(' ')[0] || 'N/A'}
+                    </Typography>
+                    <Typography variant="body2">{agendamento.horario || 'N/A'}</Typography>
+                  </Box>
+                  <CardActions className="card-actions">
+=======
                   key={agendamento.id}
                   variant="outlined"
                   className="agendamento-card"
@@ -236,6 +253,7 @@ const VerificarAgendamentos = () => {
                     <Typography variant="body2">Horário: {agendamento.horario || 'N/A'}</Typography>
                   </CardContent>
                   <CardActions>
+>>>>>>> f33e04f4b639514402417a8ddf53c911ae2e225a
                     <Button
                       size="small"
                       onClick={() => irParaProntuario(agendamento.pacienteNome)}
@@ -267,7 +285,13 @@ const VerificarAgendamentos = () => {
                       Chegou
                     </Button>
                   </CardActions>
+<<<<<<< HEAD
+                </CardContent>
+              </Card>
+              
+=======
                 </Card>
+>>>>>>> f33e04f4b639514402417a8ddf53c911ae2e225a
               )
             )}
           </Box>

@@ -1,6 +1,6 @@
-import { Button, CssBaseline, ThemeProvider } from "@mui/material";
+import { Button, CssBaseline, ThemeProvider, Typography } from "@mui/material";
 import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom"; // Importando Link
 import { useUser } from "../../context/UserContext";
 
 import temaUNNA from "../../temas"; // Ajuste o caminho conforme necessário
@@ -30,8 +30,6 @@ const HomeDesktop = () => {
         <MenuPrincipal />
         <div className="home-content">
           <div className="welcome-section">
-
-
             <div className="button-container">
               <div className="left-buttons">
                 <Button
@@ -73,6 +71,15 @@ const HomeDesktop = () => {
                   Agendamento
                 </Button>
               </div>
+            </div>
+
+            {/* Link posicionado abaixo dos botões */}
+            <div className="link-container">
+              <Typography variant="body1" className="link-gerenciar-prontuarios">
+                <Link to="/upload-prontuarios" className="link-gerenciar-prontuarios">
+                  Clique aqui para gerenciar os prontuários físicos
+                </Link>
+              </Typography>
             </div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+/* Estilos principais */
 .home-container {
   display: flex;
   flex-direction: column;
@@ -17,35 +18,9 @@
   align-items: center;
 }
 
-.logo {
-  max-width: 60vh;
-  height: 60vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 0px;
-  opacity: 0.4;
-}
-
 .welcome-section {
   text-align: center;
   width: 100%;
-}
-
-.title {
-  font-size: 24px;
-  font-weight: bold;
-  color: #a26e35;
-  margin-bottom: 20px;
-  opacity: 0.2;
-  text-align: center;
-}
-
-.user-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
 }
 
 .button-container {
@@ -72,4 +47,28 @@
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.center-buttons {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+/* Estilo do link */
+.link-container {
+  margin-top: 20px; /* Espaço entre os botões e o link */
+  text-align: center; /* Centraliza o link */
+  width: 100%; /* Garante que o link esteja centralizado */
+}
+
+.link-gerenciar-prontuarios {
+  color: #a26e35; /* Ajuste a cor para corresponder ao tema */
+  font-weight: bold; /* Destaque no texto */
+  text-decoration: none; /* Remove o sublinhado padrão */
+  font-size: 1rem; /* Tamanho do texto */
+}
+
+.link-gerenciar-prontuarios:hover {
+  text-decoration: underline; /* Adiciona sublinhado ao passar o mouse */
 }

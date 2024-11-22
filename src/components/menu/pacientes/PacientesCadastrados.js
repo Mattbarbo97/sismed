@@ -32,6 +32,7 @@ import {
     Search as SearchIcon,
     Visibility as VisibilityIcon,
     AddCircle as AddCircleIcon,
+    Download as DownloadIcon
 } from "@mui/icons-material";
 import { collection, getDocs, getFirestore, doc, updateDoc, deleteDoc, addDoc } from "firebase/firestore";
 import temaUNNA from "../../../temas";
@@ -51,6 +52,16 @@ const AcoesPaciente = ({ paciente, onEdit, onDelete, onView }) => {
             <IconButton onClick={() => onView(paciente)}>
                 <VisibilityIcon />
             </IconButton>
+            {paciente.prontuarioAntigoPDF && ( // Exibe o botão de download somente se o prontuário existir
+                <IconButton
+                    color="default"
+                    href={paciente.prontuarioAntigoPDF}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    <DownloadIcon />
+                </IconButton>
+            )}
         </>
     );
 };
@@ -358,24 +369,25 @@ const PacientesCadastrados = () => {
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {currentItems.map((paciente, index) => (
-                                    <TableRow key={index}>
-                                        <TableCell>{paciente.nome}</TableCell>
-                                        <TableCell>{paciente.email}</TableCell>
-                                        <TableCell>{formatarCPF(paciente.cpf) || 'N/A'}</TableCell>
-                                        <TableCell>{paciente.genero}</TableCell>
-                                        <TableCell>{paciente.telefone}</TableCell>
-                                        <TableCell>
-                                            <AcoesPaciente
-                                                paciente={paciente}
-                                                onEdit={handleEdit}
-                                                onDelete={handleDelete}
-                                                onView={handleView}
-                                            />
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
+    {currentItems.map((paciente, index) => (
+        <TableRow key={index}>
+            <TableCell>{paciente.nome}</TableCell>
+            <TableCell>{paciente.email}</TableCell>
+            <TableCell>{formatarCPF(paciente.cpf) || "N/A"}</TableCell>
+            <TableCell>{paciente.genero}</TableCell>
+            <TableCell>{paciente.telefone}</TableCell>
+            <TableCell>
+                <AcoesPaciente
+                    paciente={paciente}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onView={handleView}
+                />
+            </TableCell>
+        </TableRow>
+    ))}
+</TableBody>
+
                         </Table>
                     </TableContainer>
                     <Box display="flex" justifyContent="center" marginTop="2rem">

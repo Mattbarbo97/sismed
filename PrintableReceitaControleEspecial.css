@@ -1,0 +1,148 @@
+.modal-background {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000; /* Aumente o z-index para garantir que está no topo */
+}
+
+.modal-wrapper {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 210mm;
+  height: 297mm;
+  z-index: 2100; /* Certifique-se de que o modal wrapper também tenha um z-index alto */
+}
+
+.page {
+  padding: 20mm;
+  position: relative;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Centraliza horizontalmente */
+}
+
+.logo {
+  width: 60px;
+  height: auto;
+  margin-right: 20px; /* Espaço entre o logo e o título */
+}
+
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  flex-grow: 1; /* Faz com que o contêiner do título cresça para ocupar o espaço disponível */
+  text-align: center; /* Garante que o texto do título esteja centralizado */
+}
+
+.primary-color {
+  color: #a26e35; /* Exemplo de cor primária */
+}
+
+.title-text {
+  display: inline-block; /* Garante que o texto do título não ocupe mais espaço que o necessário */
+}
+
+.document-title {
+  text-align: center;
+  margin-bottom: 10mm;
+}
+
+.main-title {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.patient-info-container,
+.prescription-content,
+.footer-info {
+  margin-bottom: 10mm;
+}
+
+.patient-info,
+.footer-info,
+.footer-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  font-weight: bold;
+}
+
+.info {
+  margin-left: 10px;
+}
+
+.footer {
+  text-align: center;
+  align-items: center;
+  bottom: 10mm;
+  left: 0;
+  width: 100%;
+  z-index: 2200; /* Certifique-se de que o footer também tenha um z-index alto */
+}
+
+.footer-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 10mm;
+}
+
+.footer-title {
+  font-weight: bold;
+  margin-bottom: 5mm;
+}
+
+.footer-info {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 3mm;
+}
+
+.info-line {
+  flex-grow: 1;
+  border-bottom: 1px solid black;
+  margin-left: 10px;
+}
+
+.info-line.small {
+  width: 50px;
+}
+
+.info-line.large {
+  width: 200px;
+}
+
+.button-container-print {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.custom-button {
+  background-color: #a26e35;
+  color: rgb(255, 255, 255);
+}
+
+.custom-button.print-button {
+  margin-right: 10px;
+}
+
+.custom-button.cancel-button {
+  background-color: #d32f2f;
+}
+
+.signature-line {
+  display: inline-block;
+  margin: 20px 0;
+  border-bottom: 1px solid #000;
+  width: 200px;
+}

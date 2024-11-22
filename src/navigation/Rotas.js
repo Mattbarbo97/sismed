@@ -9,6 +9,8 @@ import PreCadastro from '../components/menu/pacientes/PreCadastro';
 
 import PacientesCadastrados from '../components/menu/pacientes/PacientesCadastrados';
 import ProntuarioEletronico from '../components/menu/prontuarios/CriarProntuario';
+import UploadProntuarios from '../components/menu/pacientes/UploadProntuarios';
+
 import GerenciamentoFuncoes from '../components/usuarios/GerenciamentoFuncoes';
 import Agendamentos from '../components/menu/agendamentos/Agendamentos';
 import PrintableDocument from '../components/menu/prontuarios/PrintableDocument';
@@ -31,6 +33,8 @@ function Rotas() {
       <Route path="/printable-document" element={<PrintableDocument />} />
       <Route path="/gestao-horario" element={<GestaoHorario />} />
       <Route path="/verificar-agendamentos" element={<VerificarAgendamentos />} /> {/* Correção na rota */}
+      <Route path="/upload-prontuarios" element={<UploadProntuarios />} />
+
       {/* Outras rotas conforme necessário */}
     </Routes>
   );

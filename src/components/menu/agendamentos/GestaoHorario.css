@@ -1,5 +1,7 @@
 .container {
   padding: 20px;
+  max-width: 1200px; /* Limita a largura máxima */
+  margin: 0 auto; /* Centraliza o conteúdo */
 }
 
 .header {
@@ -23,20 +25,24 @@
 .cards-container {
   display: flex;
   justify-content: space-between;
+  gap: 20px; /* Espaçamento entre os cartões */
+  flex-wrap: wrap; /* Permite que os cartões quebrem linha em telas menores */
 }
 
 .card-dias-semana {
-  width: 48%;
+  flex: 1;
   padding: 30px;
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
+  min-width: 300px; /* Define um tamanho mínimo */
 }
 
 .card-calendario {
-  width: 48%;
+  flex: 1;
   padding: 20px;
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
+  min-width: 300px; /* Define um tamanho mínimo */
 }
 
 .horario-card {
@@ -57,5 +63,23 @@
 }
 
 .calendar {
-  height: 500px;
+  height: 100%; /* Ajusta a altura automaticamente */
+  min-height: 300px; /* Define um tamanho mínimo para o calendário */
+}
+
+/* Responsividade para telas menores */
+@media (max-width: 768px) {
+  .cards-container {
+    flex-direction: column; /* Organiza os cartões em coluna */
+    align-items: center; /* Centraliza os cartões */
+  }
+
+  .card-dias-semana, .card-calendario {
+    width: 100%; /* Ajusta a largura para ocupar o espaço total */
+    margin-bottom: 20px; /* Adiciona espaçamento entre os cartões */
+  }
+
+  .calendar {
+    height: auto; /* Ajusta a altura automaticamente em telas menores */
+  }
 }

@@ -20,6 +20,8 @@ import addDays from 'date-fns/addDays';
 import addYears from 'date-fns/addYears';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
+import { ListItemButton } from '@mui/material';
+
 
 const locales = {
   'pt-BR': require('date-fns/locale/pt-BR'),
@@ -94,6 +96,29 @@ function Agendamento() {
 
     carregarDados();
   }, []);
+
+  useEffect(() => {
+  const carregarHorariosOcupados = async () => {
+    if (data && profissional) {
+      try {
+        const docRef = doc(db, 'usuarios_cadastrados', profissional);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const dataDoc = docSnap.data();
+          const horarios = dataDoc.disponibilidade?.horarios || {};
+          const horariosDoDia = horarios[format(new Date(data), 'yyyy-MM-dd')] || [];
+          setHorariosOcupados(horariosDoDia);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar horários ocupados:', error);
+      }
+    }
+  };
+
+  carregarHorariosOcupados();
+}, [data, profissional]);
+
 
   useEffect(() => {
     const carregarHorarios = async () => {
@@ -467,29 +492,33 @@ const handleCadastroPacienteClick = () => {
                 </Typography>
               )}
 
-              <List>
-                {recalcularPeriodos(horariosDisponiveis[getDay(new Date(data))] || {}, duracaoManual).map((horario, index) => (
-                  <ListItem
-                    button
-                    key={index}
-                    disabled={horariosOcupados.includes(horario)}
-                    selected={horariosSelecionados.includes(horario)}
-                    onClick={() => handleHorarioChange(horario)}
-                    style={{
-                      boxShadow: horariosSelecionados.includes(horario)
-                        ? '0px 4px 8px rgba(0, 0, 0, 0.5)'
-                        : 'none',
-                    }}
-                  >
-                    <ListItemText
-                      primary={horario}
-                      style={{
-                        textDecoration: horariosOcupados.includes(horario) ? 'line-through' : 'none',
-                      }}
-                    />
-                  </ListItem>
-                ))}
-              </List>
+<List>
+  {recalcularPeriodos(horariosDisponiveis[getDay(new Date(data))] || {}, duracaoManual).map((horario, index) => (
+    <ListItem key={index}>
+      <ListItemButton
+        disabled={horariosOcupados.includes(horario)} // Desativa o botão se o horário estiver ocupado
+        selected={horariosSelecionados.includes(horario)}
+        onClick={() => handleHorarioChange(horario)}
+        style={{
+          boxShadow: horariosSelecionados.includes(horario)
+            ? '0px 4px 8px rgba(0, 0, 0, 0.5)'
+            : 'none',
+          backgroundColor: horariosOcupados.includes(horario) ? '#ffcccc' : 'white', // Destaque para horários ocupados
+        }}
+      >
+        <ListItemText
+          primary={horario}
+          style={{
+            textDecoration: horariosOcupados.includes(horario) ? 'line-through' : 'none',
+            color: horariosOcupados.includes(horario) ? 'red' : 'black', // Texto em vermelho para horários ocupados
+          }}
+        />
+      </ListItemButton>
+    </ListItem>
+  ))}
+</List>
+
+
             </DialogContent>
             <DialogActions>
               <Button onClick={() => setOpenHorariosModal(false)} color="secondary">

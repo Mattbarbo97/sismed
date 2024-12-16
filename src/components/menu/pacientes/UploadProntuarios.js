@@ -196,7 +196,7 @@ const UploadProntuarios = () => {
     }
 
     return (
-        <Box padding="1rem">
+        <Box padding="1rem" style={{ zoom: 1.4 }}>
             <MenuPrincipal />
             <Typography variant="h5" gutterBottom>
                 Upload de Prontuários

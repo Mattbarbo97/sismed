@@ -1,6 +1,6 @@
 /* eslint-disable */
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../firebase';
 import { useNavigate } from 'react-router-dom';
 import MenuPrincipal from '../../menu/MenuPrincipal';
@@ -59,54 +59,64 @@ const VerificarAgendamentos = () => {
     fetchPacientes();
   }, []);
 
-  const fetchAgendamentos = async () => {
-    try {
-      const querySnapshot = await getDocs(collection(db, 'agendamentos'));
-      const agendamentosList = [];
-  
-      querySnapshot.docs.forEach((doc) => {
-        const data = doc.data();
-        if (data && data.data) {
-          const dataAgendamento = data.data.seconds
-            ? new Date(data.data.seconds * 1000)
-            : data.data;
-  
-          if (data.profissionalId === medicoSelecionado) {
-            agendamentosList.push({
-              id: doc.id,
-              ...data,
-              data: dataAgendamento,
-              horario: data.horario,
-            });
-          }
-        }
-      });
-  
-      // Ordena por data e horário
-      agendamentosList.sort((a, b) => {
-        const dateComparison = a.data - b.data;
-        if (dateComparison !== 0) return dateComparison;
-  
-        const [hoursA, minutesA] = a.horario.split(':').map(Number);
-        const [hoursB, minutesB] = b.horario.split(':').map(Number);
-  
-        return hoursA !== hoursB ? hoursA - hoursB : minutesA - minutesB;
-      });
-  
-      // Atualiza o estado
-      setAgendamentos(agendamentosList);
-    } catch (error) {
-      console.error('Erro ao buscar agendamentos:', error);
-    }
-  };
-  
-
   useEffect(() => {
+    let unsubscribe;
+
+    const fetchData = () => {
+      unsubscribe = onSnapshot(
+        collection(db, 'agendamentos'),
+        (snapshot) => {
+          const agendamentosList = [];
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            if (data && data.data) {
+              const dataAgendamento = data.data.seconds
+                ? new Date(data.data.seconds * 1000)
+                : data.data;
+
+              if (data.profissionalId === medicoSelecionado) {
+                agendamentosList.push({
+                  id: doc.id,
+                  ...data,
+                  data: dataAgendamento,
+                  horario: data.horario,
+                });
+              }
+            }
+          });
+
+          agendamentosList.sort((a, b) => {
+            const dateComparison = a.data - b.data;
+            if (dateComparison !== 0) return dateComparison;
+
+            const [hoursA, minutesA] = a.horario.split(':').map(Number);
+            const [hoursB, minutesB] = b.horario.split(':').map(Number);
+
+            return hoursA !== hoursB ? hoursA - hoursB : minutesA - minutesB;
+          });
+
+          setAgendamentos(agendamentosList);
+        },
+        (error) => {
+          console.error('Erro ao escutar agendamentos:', error);
+        }
+      );
+    };
+
     if (medicoSelecionado) {
-      fetchAgendamentos();
+      fetchData();
+
+      // Atualização periódica a cada 60 segundos
+      const interval = setInterval(() => {
+        fetchData();
+      }, 600);
+
+      return () => {
+        if (unsubscribe) unsubscribe();
+        clearInterval(interval); // Limpa o intervalo quando o componente for desmontado
+      };
     }
   }, [medicoSelecionado]);
-  
 
   const organizarAgendamentos = () => {
     const grouped = {};
@@ -152,12 +162,13 @@ const VerificarAgendamentos = () => {
     }
   };
 
-  const updateAppointmentStatus = (id, newStatus) => {
-    setAgendamentos((prevAgendamentos) =>
-      prevAgendamentos.map((agendamento) =>
-        agendamento.id === id ? { ...agendamento, status: newStatus } : agendamento
-      )
-    );
+  const updateAppointmentStatus = async (id, newStatus) => {
+    try {
+      const appointmentRef = doc(db, 'agendamentos', id);
+      await updateDoc(appointmentRef, { status: newStatus });
+    } catch (error) {
+      console.error('Erro ao atualizar status do agendamento:', error);
+    }
   };
 
   return (
@@ -230,10 +241,9 @@ const VerificarAgendamentos = () => {
                   }}
                 >
                   <CardContent>
-                  <Typography variant="subtitle1">
-  Paciente: {agendamento.pacienteNome?.split(' ')[0] || 'N/A'}
-</Typography>
-
+                    <Typography variant="subtitle1">
+                      Paciente: {agendamento.pacienteNome?.split(' ')[0] || 'N/A'}
+                    </Typography>
                     <Typography variant="body2">Horário: {agendamento.horario || 'N/A'}</Typography>
                   </CardContent>
                   <CardActions>

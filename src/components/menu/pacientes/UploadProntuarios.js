@@ -19,9 +19,10 @@ import {
 } from "@mui/material";
 import {
     Search as SearchIcon,
-    CameraAlt as CameraAltIcon,
     UploadFile as UploadFileIcon,
+    FileUpload as FileUploadIcon,
     PictureAsPdf as PictureAsPdfIcon,
+    Visibility as VisibilityIcon
 } from "@mui/icons-material";
 import { collection, getDocs, getFirestore, doc, updateDoc } from "firebase/firestore";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
@@ -76,7 +77,21 @@ const UploadProntuarios = () => {
     };
 
     const handleFileChange = (event) => {
-        setFiles([...files, ...Array.from(event.target.files)]);
+        const selectedFiles = Array.from(event.target.files);
+        const validFiles = selectedFiles.filter((file) =>
+            [
+                "image/*",
+                "application/pdf",
+                "application/msword",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ].some((type) => file.type.match(type))
+        );
+
+        if (validFiles.length !== selectedFiles.length) {
+            alert("Alguns arquivos selecionados não são permitidos.");
+        }
+
+        setFiles((prevFiles) => [...prevFiles, ...validFiles]);
     };
 
     const handleUpload = async () => {
@@ -129,16 +144,17 @@ const UploadProntuarios = () => {
         }
     };
 
-    const handleDownloadPDF = async () => {
-        if (!pacienteSelecionado || !uploadedPhotos.length) {
+    const handleDownloadPDF = async (paciente) => {
+        const { prontuarioFotos, nome } = paciente;
+        if (!prontuarioFotos || prontuarioFotos.length === 0) {
             alert("Nenhum paciente ou fotos disponíveis para gerar o PDF.");
             return;
         }
 
         const pdf = new jsPDF();
 
-        for (let i = 0; i < uploadedPhotos.length; i++) {
-            const imageUrl = uploadedPhotos[i];
+        for (let i = 0; i < prontuarioFotos.length; i++) {
+            const imageUrl = prontuarioFotos[i];
             try {
                 const img = new Image();
                 img.crossOrigin = "Anonymous";
@@ -151,7 +167,7 @@ const UploadProntuarios = () => {
                         const width = img.width * scale;
                         const height = img.height * scale;
                         pdf.addImage(img, "JPEG", (pageWidth - width) / 2, (pageHeight - height) / 2, width, height);
-                        if (i < uploadedPhotos.length - 1) pdf.addPage();
+                        if (i < prontuarioFotos.length - 1) pdf.addPage();
                         resolve();
                     };
                     img.onerror = reject;
@@ -162,7 +178,7 @@ const UploadProntuarios = () => {
             }
         }
 
-        pdf.save(`prontuario_${pacienteSelecionado.nome || "paciente"}.pdf`);
+        pdf.save(`prontuario_${nome || "paciente"}.pdf`);
     };
 
     const handleCloseSnackbar = () => {
@@ -240,11 +256,7 @@ const UploadProntuarios = () => {
                                     <Button
                                         variant="outlined"
                                         color="secondary"
-                                        onClick={() => {
-                                            setPacienteSelecionado(paciente);
-                                            setUploadedPhotos(paciente.prontuarioFotos || []);
-                                            handleDownloadPDF();
-                                        }}
+                                        onClick={() => handleDownloadPDF(paciente)}
                                         disabled={!paciente.prontuarioFotos?.length}
                                         startIcon={<PictureAsPdfIcon />}
                                     >
@@ -270,15 +282,25 @@ const UploadProntuarios = () => {
                 <DialogContent>
                     {pacienteSelecionado && (
                         <>
-                            <Typography>Fotos para: <strong>{pacienteSelecionado.nome}</strong></Typography>
+                            <Typography>Arquivos para: <strong>{pacienteSelecionado.nome}</strong></Typography>
                             <Box display="flex" flexWrap="wrap" gap="0.5rem" marginTop="1rem">
                                 {uploadedPhotos.map((url, index) => (
-                                    <img
-                                        key={index}
-                                        src={url}
-                                        alt={`Prontuário ${index + 1}`}
-                                        style={{ width: "80px", height: "80px", objectFit: "cover", borderRadius: "8px" }}
-                                    />
+                                    <Box key={index} display="flex" flexDirection="column" alignItems="center">
+                                        <img
+                                            src={url}
+                                            alt={`Prontuário ${index + 1}`}
+                                            style={{ width: "80px", height: "80px", objectFit: "cover", borderRadius: "8px" }}
+                                        />
+                                        <Button
+                                            variant="text"
+                                            color="primary"
+                                            size="small"
+                                            startIcon={<VisibilityIcon />}
+                                            onClick={() => window.open(url, "_blank")}
+                                        >
+                                            Visualizar
+                                        </Button>
+                                    </Box>
                                 ))}
                             </Box>
                             <Box marginTop="1rem">
@@ -286,15 +308,14 @@ const UploadProntuarios = () => {
                                     fullWidth
                                     variant="contained"
                                     color="primary"
-                                    startIcon={<CameraAltIcon />}
+                                    startIcon={<FileUploadIcon />}
                                     onClick={() => document.getElementById("fileInput").click()}
                                 >
-                                    Selecionar Fotos
+                                    Selecionar Arquivos
                                 </Button>
                                 <input
                                     id="fileInput"
                                     type="file"
-                                    accept="image/*"
                                     multiple
                                     onChange={handleFileChange}
                                     style={{ display: "none" }}

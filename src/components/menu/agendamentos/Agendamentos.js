@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Switch } from '@mui/material';
 import { collection, getDocs, doc, getDoc, addDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../firebase';
 import {
@@ -98,26 +99,26 @@ function Agendamento() {
   }, []);
 
   useEffect(() => {
-  const carregarHorariosOcupados = async () => {
-    if (data && profissional) {
-      try {
-        const docRef = doc(db, 'usuarios_cadastrados', profissional);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-          const dataDoc = docSnap.data();
-          const horarios = dataDoc.disponibilidade?.horarios || {};
-          const horariosDoDia = horarios[format(new Date(data), 'yyyy-MM-dd')] || [];
-          setHorariosOcupados(horariosDoDia);
+    const carregarHorariosOcupados = async () => {
+      if (data && profissional) {
+        try {
+          const docRef = doc(db, 'usuarios_cadastrados', profissional);
+          const docSnap = await getDoc(docRef);
+  
+          if (docSnap.exists()) {
+            const dataDoc = docSnap.data();
+            const indisponiveis = dataDoc.disponibilidade?.indisponiveis || [];
+            setHorariosOcupados(indisponiveis);
+          }
+        } catch (error) {
+          console.error('Erro ao carregar horários ocupados:', error);
         }
-      } catch (error) {
-        console.error('Erro ao carregar horários ocupados:', error);
       }
-    }
-  };
-
-  carregarHorariosOcupados();
-}, [data, profissional]);
+    };
+  
+    carregarHorariosOcupados();
+  }, [data, profissional]);
+  
 
 
   useEffect(() => {
@@ -275,7 +276,36 @@ function Agendamento() {
     }
     return true;
   };
-
+  const handleHorarioSwitch = async (horario, disponivel) => {
+    try {
+      const docRef = doc(db, 'usuarios_cadastrados', profissional);
+      const docSnap = await getDoc(docRef);
+  
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const indisponiveis = data.disponibilidade?.indisponiveis || [];
+  
+        if (!disponivel) {
+          // Adicionar horário à lista de indisponíveis
+          indisponiveis.push(horario);
+        } else {
+          // Remover horário da lista de indisponíveis
+          const updatedIndisponiveis = indisponiveis.filter((h) => h !== horario);
+          data.disponibilidade.indisponiveis = updatedIndisponiveis;
+        }
+  
+        // Atualizar no Firestore
+        await updateDoc(docRef, {
+          'disponibilidade.indisponiveis': indisponiveis,
+        });
+  
+        console.log('Horário atualizado no banco de dados!');
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar horário:', error);
+    }
+  };
+  
   const handleHorarioChange = (horario) => {
     if (horariosOcupados.includes(horario)) {
       return;
@@ -493,30 +523,57 @@ const handleCadastroPacienteClick = () => {
               )}
 
 <List>
-  {recalcularPeriodos(horariosDisponiveis[getDay(new Date(data))] || {}, duracaoManual).map((horario, index) => (
-    <ListItem key={index}>
-      <ListItemButton
-        disabled={horariosOcupados.includes(horario)} // Desativa o botão se o horário estiver ocupado
-        selected={horariosSelecionados.includes(horario)}
-        onClick={() => handleHorarioChange(horario)}
-        style={{
-          boxShadow: horariosSelecionados.includes(horario)
-            ? '0px 4px 8px rgba(0, 0, 0, 0.5)'
-            : 'none',
-          backgroundColor: horariosOcupados.includes(horario) ? '#ffcccc' : 'white', // Destaque para horários ocupados
-        }}
-      >
-        <ListItemText
-          primary={horario}
-          style={{
-            textDecoration: horariosOcupados.includes(horario) ? 'line-through' : 'none',
-            color: horariosOcupados.includes(horario) ? 'red' : 'black', // Texto em vermelho para horários ocupados
+  {recalcularPeriodos(horariosDisponiveis[getDay(new Date(data))] || {}, duracaoManual).map((horario, index) => {
+    const disponivel = !horariosOcupados.includes(horario); // Verifica se o horário está disponível
+    const selecionado = horariosSelecionados.includes(horario); // Verifica se está selecionado para agendamento
+
+    return (
+      <ListItem key={index} disableGutters style={{ display: 'flex', alignItems: 'center' }}>
+        {/* Switch para ativar/desativar o horário */}
+        <Switch
+          checked={disponivel}
+          onChange={async (e) => {
+            const novoEstado = e.target.checked;
+            // Atualiza o estado local de indisponíveis
+            if (novoEstado) {
+              setHorariosOcupados((prev) => prev.filter((h) => h !== horario));
+            } else {
+              setHorariosOcupados((prev) => [...prev, horario]);
+            }
+
+            // Atualiza o estado no Firestore
+            await handleHorarioSwitch(horario, novoEstado);
           }}
+          color="primary"
         />
-      </ListItemButton>
-    </ListItem>
-  ))}
+
+        {/* Texto do horário */}
+        <Typography
+          onClick={() => {
+            // Seleciona/desmarca para agendamento, mas apenas se disponível
+            if (disponivel) {
+              if (selecionado) {
+                setHorariosSelecionados((prev) => prev.filter((h) => h !== horario));
+              } else {
+                setHorariosSelecionados((prev) => [...prev, horario]);
+              }
+            }
+          }}
+          style={{
+            textDecoration: !disponivel ? 'line-through' : 'none', // Linha cortada para horários desativados
+            color: !disponivel ? 'red' : selecionado ? 'blue' : 'black', // Azul para selecionado
+            cursor: disponivel ? 'pointer' : 'not-allowed', // Apenas clicável se disponível
+            fontWeight: selecionado ? 'bold' : 'normal', // Negrito para selecionado
+            marginLeft: '8px', // Adiciona espaçamento entre o switch e o texto
+          }}
+        >
+          {horario}
+        </Typography>
+      </ListItem>
+    );
+  })}
 </List>
+
 
 
             </DialogContent>
@@ -537,6 +594,7 @@ const handleCadastroPacienteClick = () => {
               <Typography>Profissional: {profissionais.find((prof) => prof.id === profissional)?.nome}</Typography>
               <Typography>Data: {formatDate(data)}</Typography>
               <Typography>Horário(s): {horariosSelecionados.join(', ')}</Typography>
+
             </DialogContent>
             <DialogActions>
               <Button onClick={() => setConfirmDialogOpen(false)} color="secondary">

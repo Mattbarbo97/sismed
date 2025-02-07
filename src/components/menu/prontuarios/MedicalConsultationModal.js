@@ -51,6 +51,7 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [documents, setDocuments] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isReceituarioControleEspecial, setIsReceituarioControleEspecial] = useState(false);
 
   useEffect(() => {
     const fetchDocuments = async () => {
@@ -72,16 +73,16 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
   }, [open, paciente?.id]);
 
   
-const formik = useFormik({
-  initialValues: {
-    receitas: [],
-    exames: [],
-    anotacoes: "",
-    dataAtendimento: getBrazilTime(),
-    horaAtendimento: getBrazilTime(),
-  },
-  validationSchema: validationSchema,
-  onSubmit: async (values) => {
+  const formik = useFormik({
+    initialValues: {
+      receitas: [],
+      exames: [],
+      anotacoes: "",
+      dataAtendimento: getBrazilTime(),
+      horaAtendimento: getBrazilTime(),
+    },
+    validationSchema: validationSchema,
+    onSubmit: async (values) => {
     setIsUploading(true);
     setErrorMessage("");
     let fileUrl = null;
@@ -212,10 +213,79 @@ const formik = useFormik({
             overflowY: "auto",
           }}
         >
-          <Typography variant="h6" style={{ textAlign: "center" }}>Novo Atendimento</Typography>
-          <Typography variant="subtitle1">Paciente: {paciente.nome}</Typography>
+      
+
           {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
+
+
           <form onSubmit={formik.handleSubmit}>
+           
+           
+
+          <Typography variant="h6">Evolução</Typography>
+            <TextField
+              label="Anotações"
+              value={formik.values.anotacoes}
+              name="anotacoes"
+              onChange={formik.handleChange}
+              error={formik.touched.anotacoes && Boolean(formik.errors.anotacoes)}
+              helperText={formik.touched.anotacoes && formik.errors.anotacoes}
+              fullWidth
+              multiline
+              rows={4}
+              variant="outlined"
+              margin="normal"
+            />
+
+            <Box className="subtle-line"></Box>
+
+
+          
+
+
+            <Typography variant="h6">Pedidos de Exames</Typography>
+            <Box display="flex" flexDirection="column" alignItems="center" gap={2} sx={{ marginBottom: 2 }}>
+              {formik.values.exames.map((exame, index) => (
+                <TextField
+                  key={exame.key}
+                  value={exame.value}
+                  name={`exames[${index}].value`}
+                  onChange={formik.handleChange}
+                  onKeyDown={(e) => handleKeyDown(e, 'exames', index)}
+                  error={formik.touched.exames && Boolean(formik.errors.exames)}
+                  helperText={formik.touched.exames && formik.errors.exames}
+                  fullWidth
+                  multiline
+                  variant="outlined"
+                  margin="normal"
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label="delete field"
+                          onClick={() => handleDeleteExame(index)}
+                          edge="end"
+                        >
+                          <CancelIcon />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              ))}
+              <IconButton onClick={addExame}>
+                <AddIcon />
+              </IconButton>
+              <Box display="flex" alignItems="center" gap={1} sx={{ mt: 2 }}>
+                <Button
+                  variant="contained"
+                  onClick={imprimirExames}
+                >
+                  Imprimir Exames
+                </Button>
+              </Box>
+            </Box>
+
             <Typography variant="h6">Receitas</Typography>
             <Box display="flex" flexDirection="column" alignItems="center" gap={2} sx={{ marginBottom: 2 }}>
               {formik.values.receitas.map((receita, index) => (
@@ -260,65 +330,11 @@ const formik = useFormik({
               </Box>
             </Box>
 
-            <Box className="subtle-line"></Box>
-            <Typography variant="h6">Pedidos de Exames</Typography>
-            <Box display="flex" flexDirection="column" alignItems="center" gap={2} sx={{ marginBottom: 2 }}>
-              {formik.values.exames.map((exame, index) => (
-                <TextField
-                  key={exame.key}
-                  value={exame.value}
-                  name={`exames[${index}].value`}
-                  onChange={formik.handleChange}
-                  onKeyDown={(e) => handleKeyDown(e, 'exames', index)}
-                  error={formik.touched.exames && Boolean(formik.errors.exames)}
-                  helperText={formik.touched.exames && formik.errors.exames}
-                  fullWidth
-                  multiline
-                  variant="outlined"
-                  margin="normal"
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          aria-label="delete field"
-                          onClick={() => handleDeleteExame(index)}
-                          edge="end"
-                        >
-                          <CancelIcon />
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              ))}
-              <IconButton onClick={addExame}>
-                <AddIcon />
-              </IconButton>
-              <Box display="flex" alignItems="center" gap={1} sx={{ mt: 2 }}>
-                <Button
-                  variant="contained"
-                  onClick={imprimirExames}
-                >
-                  Imprimir Exames
-                </Button>
-              </Box>
-            </Box>
+           
+                   
+          
 
-            <Box className="subtle-line"></Box>
-            <Typography variant="h6">Evolução</Typography>
-            <TextField
-              label="Anotações"
-              value={formik.values.anotacoes}
-              name="anotacoes"
-              onChange={formik.handleChange}
-              error={formik.touched.anotacoes && Boolean(formik.errors.anotacoes)}
-              helperText={formik.touched.anotacoes && formik.errors.anotacoes}
-              fullWidth
-              multiline
-              rows={4}
-              variant="outlined"
-              margin="normal"
-            />
+         
 
             <FormControlLabel
               control={

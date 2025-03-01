@@ -514,7 +514,7 @@ const [openReceituarioControleModal, setOpenReceituarioControleModal] = useState
   />
 )}
 
-/* ✅ Adicionando o Receituário de Controle Especial */
+
 <ReceituarioControleEspecial
   open={openReceituarioControleModal}
   onClose={() => setOpenReceituarioControleModal(false)}

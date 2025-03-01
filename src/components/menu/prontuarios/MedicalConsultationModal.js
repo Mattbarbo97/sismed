@@ -13,6 +13,7 @@ import { useUser } from '../../../context/UserContext';
 import { storage, db } from "../../../firebase"; // Importando o firebase storage e firestore configurado
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, setDoc, updateDoc, arrayUnion, getDoc } from "firebase/firestore";
+import ReceituarioControleEspecial from './ReceituarioControleEspecial';
 
 const timeZone = 'America/Sao_Paulo';
 
@@ -41,9 +42,14 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
   const [exameCounter, setExameCounter] = useState(0);
   const [confirmClear, setConfirmClear] = useState(false);
   const [openPrintModal, setOpenPrintModal] = useState(false);
-  const [printContentList, setPrintContentList] = useState([]);
-  const [printIndex, setPrintIndex] = useState(0);
-  const [printTitle, setPrintTitle] = useState('');
+const [printContentList, setPrintContentList] = useState([]);
+const [printIndex, setPrintIndex] = useState(0);
+const [printTitle, setPrintTitle] = useState('');
+
+// ✅ Adicionando estado para o Receituário de Controle Especial
+const [isReceituarioControleEspecial, setIsReceituarioControleEspecial] = useState(false);
+const [openReceituarioControleModal, setOpenReceituarioControleModal] = useState(false);
+
   const [enableFileField, setEnableFileField] = useState(false);
   const [file, setFile] = useState(null);
   const [fileCaption, setFileCaption] = useState("");
@@ -51,7 +57,8 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [documents, setDocuments] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
-  const [isReceituarioControleEspecial, setIsReceituarioControleEspecial] = useState(false);
+  
+
 
   useEffect(() => {
     const fetchDocuments = async () => {
@@ -287,48 +294,75 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
             </Box>
 
             <Typography variant="h6">Receitas</Typography>
+
             <Box display="flex" flexDirection="column" alignItems="center" gap={2} sx={{ marginBottom: 2 }}>
-              {formik.values.receitas.map((receita, index) => (
-                <TextField
-                  key={receita.key}
-                  value={receita.value}
-                  name={`receitas[${index}].value`}
-                  onChange={formik.handleChange}
-                  onKeyDown={(e) => handleKeyDown(e, 'receitas', index)}
-                  error={formik.touched.receitas && Boolean(formik.errors.receitas)}
-                  helperText={formik.touched.receitas && formik.errors.receitas}
-                  fullWidth
-                  multiline
-                  variant="outlined"
-                  margin="normal"
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          aria-label="delete field"
-                          onClick={() => handleDeleteReceita(index)}
-                          edge="end"
-                        >
-                          <CancelIcon />
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              ))}
-              <IconButton onClick={addReceita}>
-                <AddIcon />
-              </IconButton>
-              <Box display="flex" alignItems="center" gap={1} sx={{ mt: 2 }}>
-                <Button
-                  variant="contained"
-                  color="secondary"
-                  onClick={imprimirReceita}
-                >
-                  Imprimir Receita
-                </Button>
-              </Box>
-            </Box>
+  {formik.values.receitas.map((receita, index) => (
+    <TextField
+      key={receita.key}
+      value={receita.value}
+      name={`receitas[${index}].value`}
+      onChange={formik.handleChange}
+      onKeyDown={(e) => handleKeyDown(e, 'receitas', index)}
+      error={formik.touched.receitas && Boolean(formik.errors.receitas)}
+      helperText={formik.touched.receitas && formik.errors.receitas}
+      fullWidth
+      multiline
+      variant="outlined"
+      margin="normal"
+      InputProps={{
+        endAdornment: (
+          <InputAdornment position="end">
+            <IconButton
+              aria-label="delete field"
+              onClick={() => handleDeleteReceita(index)}
+              edge="end"
+            >
+              <CancelIcon />
+            </IconButton>
+          </InputAdornment>
+        ),
+      }}
+    />
+  ))} 
+</Box> {/* ✅ Aqui fechamos corretamente o primeiro Box */} 
+
+{/* ✅ Agora criamos um novo Box para os botões e o "+" */}
+<Box display="flex" flexDirection="column" alignItems="center" sx={{ mt: 2 }}>
+  <IconButton onClick={addReceita}>
+    <AddIcon />
+  </IconButton>
+
+  <Box display="flex" alignItems="center" gap={2} sx={{ mt: 2 }}>
+    <FormControlLabel
+      control={
+        <Checkbox
+          checked={isReceituarioControleEspecial}
+          onChange={() => setIsReceituarioControleEspecial(!isReceituarioControleEspecial)}
+        />
+      }
+      label="Receituário de Controle Especial"
+    />
+
+<Button
+  variant="contained"
+  sx={{
+    backgroundColor: "#8B5E3C",
+    color: "#fff",
+    "&:hover": { backgroundColor: "#6A4329" }
+  }}
+  onClick={() => {
+    if (isReceituarioControleEspecial) {
+      setOpenReceituarioControleModal(true); // ✅ Abre o modal do Receituário de Controle Especial
+    } else {
+      imprimirReceita(); // ✅ Continua imprimindo a receita normal se não for controle especial
+    }
+  }}
+>
+  Imprimir Receita
+</Button>
+
+  </Box>
+</Box> {/* ✅ Fechamento correto do Box dos botões */}
 
            
                    
@@ -467,7 +501,32 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
         </Paper>
       </Modal>
 
-      {printContentList.length > 0 && (<PrintableDocument open={openPrintModal} onClose={handlePrintModalClose} paciente={paciente} conteudo={printContentList} titulo={printTitle} medico={{ nome: user?.nome, crm: user?.identificacaoProfissional }} includeDate={true} onDocumentPrinted={() => handlePrint()} />)}
+      {printContentList.length > 0 && (
+  <PrintableDocument
+    open={openPrintModal}
+    onClose={handlePrintModalClose}
+    paciente={paciente}
+    conteudo={printContentList}
+    titulo={printTitle}
+    medico={{ nome: user?.nome, crm: user?.identificacaoProfissional }}
+    includeDate={true}
+    onDocumentPrinted={() => handlePrint()}
+  />
+)}
+
+/* ✅ Adicionando o Receituário de Controle Especial */
+<ReceituarioControleEspecial
+  open={openReceituarioControleModal}
+  onClose={() => setOpenReceituarioControleModal(false)}
+  paciente={paciente}
+  conteudo={formik.values.receitas.map(r => r.value.replace(/\n/g, '<br>'))}
+  titulo="Receituário de Controle Especial"
+  medico={{ nome: user?.nome, crm: user?.identificacaoProfissional }}
+  includeDate={true}
+  onDocumentPrinted={() => setOpenReceituarioControleModal(false)}
+  tipoDocumento="receituario_controle"
+/>
+
 
       <Box className="subtle-line"></Box>
       <Typography variant="h6">Documentos do Paciente</Typography>

@@ -14,6 +14,7 @@ import { storage, db } from "../../../firebase"; // Importando o firebase storag
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, setDoc, updateDoc, arrayUnion, getDoc } from "firebase/firestore";
 import ReceituarioControleEspecial from './ReceituarioControleEspecial';
+import OdontogramaModal from './Odontograma/OdontogramaModal';
 
 const timeZone = 'America/Sao_Paulo';
 
@@ -40,6 +41,8 @@ const MedicalConsultationModal = ({ open, onClose, paciente, handleSave }) => {
   const { user } = useUser();
   const [receitaCounter, setReceitaCounter] = useState(0);
   const [exameCounter, setExameCounter] = useState(0);
+  const [openOdontograma, setOpenOdontograma] = useState(false);
+
   const [confirmClear, setConfirmClear] = useState(false);
   const [openPrintModal, setOpenPrintModal] = useState(false);
 const [printContentList, setPrintContentList] = useState([]);
@@ -156,6 +159,11 @@ const [openReceituarioControleModal, setOpenReceituarioControleModal] = useState
     formik.setFieldValue("receitas", [...formik.values.receitas, newReceita]);
     setReceitaCounter(receitaCounter + 1);
   };
+  
+  const handleDenteSelecionado = (dente) => {
+    formik.setFieldValue("anotacoes", formik.values.anotacoes + ` Dente ${dente},`);
+  };
+  
 
   const handleDeleteExame = (index) => {
     const newExames = [...formik.values.exames];
@@ -204,6 +212,9 @@ const [openReceituarioControleModal, setOpenReceituarioControleModal] = useState
     }
   };
 
+
+
+
   return (
     <>
       <Modal open={open} onClose={onClose}>
@@ -229,7 +240,13 @@ const [openReceituarioControleModal, setOpenReceituarioControleModal] = useState
            
            
 
-          <Typography variant="h6">Evolução</Typography>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6">Evolução</Typography>
+            <Button variant="contained" onClick={() => setOpenOdontograma(true)}>
+              Odontograma
+            </Button>
+          </Box>
+
             <TextField
               label="Anotações"
               value={formik.values.anotacoes}
@@ -438,6 +455,12 @@ const [openReceituarioControleModal, setOpenReceituarioControleModal] = useState
               </Button>
             </Box>
           </form>
+          <OdontogramaModal
+           open={openOdontograma}
+           onClose={() => setOpenOdontograma(false)}
+           onDenteSelecionado={handleDenteSelecionado}
+         />
+
         </Paper>
       </Modal>
 

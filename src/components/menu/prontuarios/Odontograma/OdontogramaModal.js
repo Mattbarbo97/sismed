@@ -12,7 +12,7 @@ const dentesInferiores = [
   "31", "32", "33", "34", "35", "36", "37", "38"
 ];
 
-const OdontogramaModal = ({ open, onClose, onDenteSelecionado }) => {
+const OdontogramaModal = ({ open, onClose, onDenteSelecionado, evolucaoAtual }) => {
   const [dentesSelecionados, setDentesSelecionados] = useState([]);
 
   const handleClick = (dente) => {
@@ -23,12 +23,17 @@ const OdontogramaModal = ({ open, onClose, onDenteSelecionado }) => {
 
   const handleConfirmar = () => {
     if (dentesSelecionados.length > 0) {
-      // Garante que cada dente seja precedido corretamente por "Dente" sem duplicação
+      // Verifica se já existe "Dente" na string antes de adicionar
       const listaDentesFormatada = dentesSelecionados
-        .map((dente) => `Dente ${dente}`)
+        .map((dente) => (dente.startsWith("Dente") ? dente : `Dente ${dente}`))
         .join("\n");
 
-      onDenteSelecionado(listaDentesFormatada);
+      // Atualiza corretamente sem duplicar "Dente"
+      const novaEvolucao = evolucaoAtual
+        ? `${evolucaoAtual.trim()}\n${listaDentesFormatada}`.trim()
+        : listaDentesFormatada;
+
+      onDenteSelecionado(novaEvolucao);
       onClose();
     }
   };

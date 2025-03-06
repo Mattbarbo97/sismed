@@ -159,10 +159,28 @@ const [openReceituarioControleModal, setOpenReceituarioControleModal] = useState
     formik.setFieldValue("receitas", [...formik.values.receitas, newReceita]);
     setReceitaCounter(receitaCounter + 1);
   };
+
+  // 🔹 Função que sanitiza a entrada para evitar "Dente Dente" ou variações como "Dente, dente"
+const sanitizeDenteAnotacao = (texto) => {
+  return texto
+    .replace(/Dente\s+Dente/gi, "Dente")  // Remove "Dente Dente"
+    .replace(/Dente,\s*Dente/gi, "Dente")  // Remove "Dente, Dente"
+    .replace(/\s*,\s*$/, "") // Remove vírgula extra no final
+    .trim();
+};
+
   
-  const handleDenteSelecionado = (dente) => {
-    formik.setFieldValue("anotacoes", formik.values.anotacoes + ` Dente ${dente},`);
-  };
+const handleDenteSelecionado = (dente) => {
+  let anotacoesAtuais = formik.values.anotacoes.trim();
+
+  // Adiciona o dente e sanitiza a string para evitar repetições
+  const novaAnotacao = sanitizeDenteAnotacao(`${anotacoesAtuais}\nDente ${dente}`);
+
+  formik.setFieldValue("anotacoes", novaAnotacao);
+};
+
+
+  
   
 
   const handleDeleteExame = (index) => {

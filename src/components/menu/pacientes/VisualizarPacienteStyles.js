@@ -1,17 +1,16 @@
-//VisualizarPacienteStyles.js
 import { makeStyles } from "@mui/styles";
 
 const useStyles = makeStyles((theme) => ({
     formContainer: {
         display: "flex",
         flexDirection: "column",
-        margin: theme.spacing(2),
+        margin: theme?.spacing ? theme.spacing(2) : "16px", // Garante um valor fixo se theme.spacing não existir
         "& .MuiTextField-root": {
-            margin: theme.spacing(1),
+            margin: theme?.spacing ? theme.spacing(1) : "8px",
             backgroundColor: "#FFF",
         },
         "& .MuiButton-root": {
-            margin: theme.spacing(1),
+            margin: theme?.spacing ? theme.spacing(1) : "8px",
         },
     },
     slider: {
@@ -24,8 +23,7 @@ const useStyles = makeStyles((theme) => ({
         backgroundColor: "#ccc",
         transition: "background-color 0.4s",
         borderRadius: 34, // Adiciona bordas arredondadas para o slider
-      },
-      
+    },
     submitButton: {
         backgroundColor: "#DAA520",
         "&:hover": {
@@ -37,7 +35,7 @@ const useStyles = makeStyles((theme) => ({
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        height: "100vh", // Isso centraliza verticalmente o conteúdo na tela
+        height: "100vh",
     },
     usuariosContent: {
         padding: "20px",
